@@ -1,0 +1,25 @@
+[project]
+name = "ai-rpa-starter"
+version = "0.1.0"
+description = "AI-first RPA starter built with Robot Framework, Python and Playwright."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.0",
+  "robotframework-browser>=19.0",
+  "playwright>=1.44",
+  "python-dotenv>=1.0",
+  "requests>=2.32",
+  "pywebview>=5.0",
+]
+
+[project.scripts]
+ai-rpa = "ai_rpa.cli:main"
+ai-rpa-desktop = "ai_rpa.desktop_app:main"
+
+[project.optional-dependencies]
+packaging = [
+  "pyinstaller>=6.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

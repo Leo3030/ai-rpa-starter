@@ -1,0 +1,96 @@
+{
+  "id": "dianxiaomi-draft-demo",
+  "name": "店小秘采集箱演示流程",
+  "version": "0.1.0",
+  "nodes": [
+    {
+      "id": "open-home",
+      "type": "web.open",
+      "title": "打开店小秘首页",
+      "params": {
+        "url": "https://www.dianxiaomi.com/index.htm"
+      }
+    },
+    {
+      "id": "if-login-form-visible",
+      "type": "flow.if",
+      "title": "如果需要登录",
+      "params": {
+        "selector": "input[type=password], input[placeholder*=密码], button:has-text(\"登录\"), input[type=submit][value*=登录]"
+      }
+    },
+    {
+      "id": "input-account",
+      "type": "web.input",
+      "title": "输入账号",
+      "params": {
+        "target": "账号",
+        "selector": "input[name*=account i], input[id*=account i], input[placeholder*=账号]",
+        "value": "${DXM_ACCOUNT}"
+      }
+    },
+    {
+      "id": "input-password",
+      "type": "web.input",
+      "title": "输入密码",
+      "params": {
+        "target": "密码",
+        "selector": "input[type=password], input[name*=password i], input[placeholder*=密码]",
+        "value": "${DXM_PASSWORD}"
+      }
+    },
+    {
+      "id": "wait-before-login",
+      "type": "flow.wait",
+      "title": "等待登录表单稳定",
+      "params": {
+        "seconds": 2
+      }
+    },
+    {
+      "id": "click-login",
+      "type": "web.click",
+      "title": "点击登录",
+      "params": {
+        "target": "登录",
+        "selector": "button:has-text(\"登录\"), input[type=submit][value*=登录]"
+      }
+    },
+    {
+      "id": "wait-after-login",
+      "type": "flow.wait",
+      "title": "等待登录响应",
+      "params": {
+        "seconds": 2
+      }
+    },
+    {
+      "id": "end-if-login-form-visible",
+      "type": "flow.end_if",
+      "title": "结束登录判断",
+      "params": {}
+    },
+    {
+      "id": "open-draft-page",
+      "type": "web.open",
+      "title": "进入采集箱",
+      "params": {
+        "url": "https://www.dianxiaomi.com/web/smt/smtProductList/draft"
+      }
+    },
+    {
+      "id": "wait-draft",
+      "type": "web.wait_for",
+      "title": "等待采集箱",
+      "params": {
+        "urlIncludes": "/web/smt/smtProductList/draft"
+      }
+    },
+    {
+      "id": "close-draft-modals",
+      "type": "web.close_modals",
+      "title": "关闭采集箱弹窗",
+      "params": {}
+    }
+  ]
+}

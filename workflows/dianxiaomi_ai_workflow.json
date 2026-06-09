@@ -1,0 +1,1992 @@
+{
+  "id": "dianxiaomi-ai-workflow",
+  "name": "店小秘 AI 采集箱处理流程",
+  "version": "0.2.0",
+  "nodes": [
+    {
+      "id": "open-home",
+      "type": "web.open",
+      "title": "打开店小秘首页",
+      "params": {
+        "url": "https://www.dianxiaomi.com/index.htm",
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-login-form-visible",
+      "type": "flow.if",
+      "title": "如果需要登录",
+      "params": {
+        "selector": "input[type=password], input[placeholder*=密码], button:has-text(\"登录\"), input[type=submit][value*=登录]",
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-account",
+      "type": "web.input",
+      "title": "输入账号",
+      "params": {
+        "target": "账号",
+        "selector": "input[name*=account i], input[id*=account i], input[placeholder*=账号]",
+        "value": "${DXM_ACCOUNT}",
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-password",
+      "type": "web.input",
+      "title": "输入密码",
+      "params": {
+        "target": "密码",
+        "selector": "input[type=password], input[name*=password i], input[placeholder*=密码]",
+        "value": "${DXM_PASSWORD}",
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-login-form",
+      "type": "flow.wait",
+      "title": "等待登录表单稳定",
+      "params": {
+        "seconds": 2,
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-login",
+      "type": "web.click",
+      "title": "点击登录",
+      "params": {
+        "target": "登录",
+        "selector": "button:has-text(\"登录\"), input[type=submit][value*=登录]",
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-login",
+      "type": "flow.wait",
+      "title": "等待登录响应",
+      "params": {
+        "seconds": 2,
+        "pageContext": "page1"
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-login-form-visible",
+      "type": "flow.end_if",
+      "title": "结束登录判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "open-draft-page",
+      "type": "web.open",
+      "title": "进入采集箱",
+      "params": {
+        "url": "https://www.dianxiaomi.com/web/smt/smtProductList/draft",
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-draft-page",
+      "type": "web.wait_for",
+      "title": "等待采集箱页面",
+      "params": {
+        "urlIncludes": "/web/smt/smtProductList/draft",
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "close-draft-modals",
+      "type": "web.close_modals",
+      "title": "关闭采集箱弹窗",
+      "params": {
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "ai-confirm-draft-page",
+      "type": "ai.ask",
+      "title": "AI 确认采集箱页面状态",
+      "params": {
+        "saveAs": "ai-confirm-draft-page",
+        "screenshot": true,
+        "pageContext": "page2",
+        "prompt": "请确认当前是否为店小秘速卖通采集箱草稿列表页。识别是否存在商品列表、编辑按钮、分页、弹窗遮挡。只返回 JSON。",
+        "timeoutSeconds": 20,
+        "retries": 1,
+        "htmlMaxChars": 12000
+      },
+      "disabled": true
+    },
+    {
+      "id": "scroll-draft-list-bottom",
+      "type": "web.scroll",
+      "title": "预滚动采集箱列表到底部",
+      "params": {
+        "target": "采集箱商品列表",
+        "selector": ".vxe-table--body-wrapper",
+        "position": "bottom",
+        "scrollSteps": 12,
+        "settleMs": 180,
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "scroll-draft-list-top",
+      "type": "web.scroll",
+      "title": "回到采集箱列表顶部",
+      "params": {
+        "target": "采集箱商品列表",
+        "selector": ".vxe-table--body-wrapper",
+        "position": "top",
+        "scrollSteps": 3,
+        "settleMs": 120,
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "loop-products",
+      "type": "flow.loop",
+      "title": "循环处理商品",
+      "params": {
+        "times": 100,
+        "pageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-edit-button-visible",
+      "type": "flow.if",
+      "title": "如果存在第一个商品编辑按钮",
+      "params": {
+        "selector": ":nth-match(.vxe-table--body tbody > tr.vxe-body--row:has(td.col_31 a:has-text(\"编辑\")), ${loop-products.index}) td.col_31 a:has-text(\"编辑\")",
+        "pageContext": "page2",
+        "scrollBeforeLocate": true,
+        "scrollBeforeLocateContainer": ".vxe-table--body-wrapper",
+        "scrollBeforeLocateSteps": 16,
+        "scrollBeforeLocateDelta": 220
+      },
+      "disabled": false
+    },
+    {
+      "id": "extract-first-product-remark",
+      "type": "web.extract",
+      "title": "读取并解析第一条商品备注",
+      "params": {
+        "target": "第${loop-products.index}条商品备注",
+        "selector": ":nth-match(.vxe-table--body tbody > tr.vxe-body--row:has(td.col_31 a:has-text(\"编辑\")), ${loop-products.index}) td.col_25 p.comment:has-text(\"备注:\"), :nth-match(.vxe-table--body tbody > tr.vxe-body--row:has(td.col_31 a:has-text(\"编辑\")), ${loop-products.index}) td.col_25 .comment:has-text(\"备注:\")",
+        "pageContext": "page2",
+        "scrollBeforeLocate": true,
+        "scrollBeforeLocateContainer": ".vxe-table--body-wrapper",
+        "scrollBeforeLocateSteps": 16,
+        "scrollBeforeLocateDelta": 220,
+        "saveAs": "productRemark.raw",
+        "regex": "备注\\s*[:：]\\s*(?P<type>[^/]+)\\s*/\\s*(?P<costPrice>\\d+(?:\\.\\d+)?)\\s*元\\s*/\\s*(?P<weight>\\d+(?:\\.\\d+)?)\\s*克",
+        "groupSaveAs": {
+          "type": "productRemark.type",
+          "costPrice": "productRemark.costPrice",
+          "weight": "productRemark.weight"
+        },
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-first-edit",
+      "type": "web.click",
+      "title": "点击第一个商品编辑按钮",
+      "params": {
+        "target": "第${loop-products.index}个商品编辑按钮",
+        "selector": ":nth-match(.vxe-table--body tbody > tr.vxe-body--row:has(td.col_31 a:has-text(\"编辑\")), ${loop-products.index}) td.col_31 a:has-text(\"编辑\")",
+        "pageContext": "page2",
+        "scrollBeforeLocate": true,
+        "scrollBeforeLocateContainer": ".vxe-table--body-wrapper",
+        "scrollBeforeLocateSteps": 16,
+        "scrollBeforeLocateDelta": 220
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-edit-click",
+      "type": "flow.wait",
+      "title": "等待编辑页响应",
+      "params": {
+        "seconds": 2,
+        "pageContext": "pageEditEntry"
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-edit-category-modal-visible",
+      "type": "flow.if",
+      "title": "如果出现编辑分类弹窗",
+      "params": {
+        "pageContext": "pageEditEntry",
+        "selector": ".ant-modal:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), .el-dialog:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), [role=dialog]:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), .modal:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), .modal-dialog:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), .layui-layer:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), .ui-dialog:visible:has-text(\"编辑分类\"):has-text(\"跳过\"):has-text(\"去编辑产品\"), div:visible:has(button:has-text(\"编辑分类\")):has(button:has-text(\"跳过\")):has-text(\"去编辑产品\")"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-edit-category-in-modal",
+      "type": "web.click",
+      "title": "弹窗点击编辑分类",
+      "params": {
+        "target": "编辑分类",
+        "pageContext": "pageEditEntry",
+        "selector": ".ant-modal:visible button:has-text(\"编辑分类\"), .ant-modal:visible a:has-text(\"编辑分类\"), .el-dialog:visible button:has-text(\"编辑分类\"), .el-dialog:visible a:has-text(\"编辑分类\"), [role=dialog]:visible button:has-text(\"编辑分类\"), [role=dialog]:visible a:has-text(\"编辑分类\"), .modal:visible button:has-text(\"编辑分类\"), .modal-dialog:visible button:has-text(\"编辑分类\"), .layui-layer:visible button:has-text(\"编辑分类\"), .ui-dialog:visible button:has-text(\"编辑分类\"), div:visible:has(button:has-text(\"跳过\")):has-text(\"去编辑产品\") button:has-text(\"编辑分类\")",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-modify-category-page",
+      "type": "web.wait_for",
+      "title": "等待进入编辑分类页",
+      "params": {
+        "pageContext": "pageCategory",
+        "urlIncludes": "/web/modifyCategory"
+      },
+      "disabled": false
+    },
+    {
+      "id": "ai-category-instructions",
+      "type": "ai.ask",
+      "title": "AI 识别分类页变种主题",
+      "params": {
+        "saveAs": "ai-category-instructions",
+        "screenshot": true,
+        "pageContext": "pageCategory",
+        "prompt": "当前是店小秘编辑分类页。请识别两个变种主题右侧的下拉菜单位置，并确认应该将颜色分类选择为 Color、尺码选择为 Size。不要选择页面顶部类目下拉。只返回 JSON。"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-save-next-category",
+      "type": "web.click",
+      "title": "点击保存并下一步",
+      "params": {
+        "target": "保存并下一步",
+        "selector": "button:has-text(\"保存，下一步\"), button:has-text(\"保存并下一步\"), button:has-text(\"下一步\")",
+        "pageContext": "pageCategory"
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-category",
+      "type": "flow.end_if",
+      "title": "结束分类页判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "wait-detail-page",
+      "type": "flow.wait",
+      "title": "等待商品详情页稳定",
+      "params": {
+        "seconds": 2,
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "ai-translate-title",
+      "type": "ai.ask",
+      "title": "AI 自动翻译商品标题",
+      "params": {
+        "saveAs": "ai-translate-title",
+        "screenshot": true,
+        "pageContext": "page3",
+        "prompt": "请识别商品标题输入框当前内容。如果标题包含任何中文字符，请将其翻译成自然的英文标题。翻译要求：1) 必须是纯英文，不能包含中文、日文、韩文等CJK字符；2) 保持商品核心信息不变；3) 英文表达要符合速卖通平台习惯；4) 总长度（含空格）小于100字符。如果标题已经是纯英文，则直接返回原标题。只返回JSON格式。",
+        "expectedFormat": {
+          "title": "最终要写入标题框的英文标题",
+          "sourceTitle": "页面原始标题",
+          "isTranslated": false
+        }
+      },
+      "disabled": false
+    },
+    {
+      "id": "ai-title-translation",
+      "type": "ai.ask",
+      "title": "AI 翻译并优化商品标题",
+      "params": {
+        "saveAs": "ai-title-translation",
+        "screenshot": true,
+        "pageContext": "page3",
+        "prompt": "请识别商品标题输入框当前内容，并将产品标题翻译成速卖通英文标题。强制要求：title 必须是全英文/ASCII 商品标题，不能包含任何中文、日文、韩文或其他 CJK 字符；如果原标题中有中文词，必须翻译成自然英文，不得原样保留。算上空格，JS length 小于 100；如果当前已经是纯英文，直接返回英文内容。只返回 JSON，不要解释，字段 title 必须是最终要写回输入框的英文标题，title 不要有双引号或额外说明。",
+        "expectedFormat": {
+          "title": "最终要写回商品标题输入框的纯英文/ASCII 速卖通英文标题，不得包含中文/CJK字符，JS length 小于 100",
+          "sourceTitle": "页面中识别到的原始标题",
+          "confidence": 0
+        },
+        "rejectCjkTitle": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "write-translated-title",
+      "type": "web.input",
+      "title": "写入 AI 英文标题",
+      "params": {
+        "target": "商品标题",
+        "selector": "textarea[name*=subject i], input[name*=subject i]:not([type=checkbox]):not([type=radio]), textarea[id*=subject i], input[id*=subject i]:not([type=checkbox]):not([type=radio]), textarea[name*=title i], input[name*=title i]:not([type=checkbox]):not([type=radio]), textarea[placeholder*=标题], input[placeholder*=标题]:not([type=checkbox]):not([type=radio]), textarea[placeholder*=title i], input[placeholder*=title i]:not([type=checkbox]):not([type=radio]), [contenteditable=true][aria-label*=标题], .ant-form-item:has-text(\"商品标题\") textarea, .ant-form-item:has-text(\"商品标题\") input:not([type=checkbox]):not([type=radio]), .ant-form-item:has-text(\"产品标题\") textarea, .ant-form-item:has-text(\"产品标题\") input:not([type=checkbox]):not([type=radio]), .ant-row:has-text(\"商品标题\") textarea, .ant-row:has-text(\"商品标题\") input:not([type=checkbox]):not([type=radio]), .ant-row:has-text(\"产品标题\") textarea, .ant-row:has-text(\"产品标题\") input:not([type=checkbox]):not([type=radio]), tr:has-text(\"商品标题\") textarea, tr:has-text(\"产品标题\") textarea, tr:has-text(\"商品标题\") input:not([type=checkbox]):not([type=radio]), tr:has-text(\"产品标题\") input:not([type=checkbox]):not([type=radio])",
+        "timeoutMs": 15000,
+        "pageContext": "page3",
+        "value": "${ai-title-translation.title}",
+        "rejectCjk": true,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-custom-attr-batch-operate-visible",
+      "type": "flow.if",
+      "title": "如果存在自定义属性批量操作按钮",
+      "params": {
+        "pageContext": "page3",
+        "selector": ".ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") span.link.flex-y-center.inline-flex:has-text(\"批量操作\"), .ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") span:has(i.attach-icons):has-text(\"批量操作\"), div:has-text(\"属性信息\") div:has-text(\"自定义属性\") span.link.flex-y-center.inline-flex:has-text(\"批量操作\"), div:has-text(\"属性信息\") div:has-text(\"自定义属性\") span:has(i.attach-icons):has-text(\"批量操作\"), .ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") button:has-text(\"批量操作\")"
+      },
+      "disabled": false
+    },
+    {
+      "id": "hover-custom-attr-batch-operate-button",
+      "type": "web.hover",
+      "title": "悬停自定义属性批量操作按钮",
+      "params": {
+        "target": "自定义属性批量操作按钮",
+        "selector": ".ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") span.link.flex-y-center.inline-flex:has-text(\"批量操作\"), .ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") span:has(i.attach-icons):has-text(\"批量操作\"), div:has-text(\"属性信息\") div:has-text(\"自定义属性\") span.link.flex-y-center.inline-flex:has-text(\"批量操作\"), div:has-text(\"属性信息\") div:has-text(\"自定义属性\") span:has(i.attach-icons):has-text(\"批量操作\"), .ant-form-item:has-text(\"属性信息\") .ant-form-item:has-text(\"自定义属性\") button:has-text(\"批量操作\")",
+        "pageContext": "page3",
+        "noScroll": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-custom-attr-delete-all-menu",
+      "type": "web.click",
+      "title": "点击删除全部",
+      "params": {
+        "target": "删除全部",
+        "selector": ".ant-dropdown:visible:not(.ant-dropdown-hidden) .ant-dropdown-menu-item:has-text(\"删除全部\"), .ant-dropdown:visible:not(.ant-dropdown-hidden) [role=menuitem]:has-text(\"删除全部\"), .ant-popover:visible button:has-text(\"删除全部\"), [role=menu]:visible [role=menuitem]:has-text(\"删除全部\")",
+        "pageContext": "page3",
+        "opensModal": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-delete-all-custom-attr-confirm-visible",
+      "type": "flow.if",
+      "title": "如果出现删除全部自定义属性确认弹窗",
+      "params": {
+        "pageContext": "page3",
+        "selector": ".ant-modal:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")), .ant-modal-content:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")), .ant-modal-confirm-body-wrapper:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")), [role=dialog]:visible:has-text(\"确定删除全部自定义属性吗\")"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-confirm-delete-all-custom-attr",
+      "type": "web.click",
+      "title": "确认删除全部自定义属性",
+      "params": {
+        "target": "确定",
+        "selector": ".ant-modal:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")) .ant-modal-confirm-btns button.ant-btn-primary, .ant-modal-content:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")) .ant-modal-confirm-btns button.ant-btn-primary, .ant-modal-confirm-body-wrapper:visible:has(.ant-modal-confirm-content:has-text(\"确定删除全部自定义属性吗\")) .ant-modal-confirm-btns button.ant-btn-primary, [role=dialog]:visible:has-text(\"确定删除全部自定义属性吗\") button.ant-btn-primary, [role=dialog]:visible:has-text(\"确定删除全部自定义属性吗\") button:has-text(\"确 定\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-delete-all-custom-attr-confirm-visible",
+      "type": "flow.end_if",
+      "title": "结束删除全部自定义属性确认判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "end-if-custom-attr-batch-operate-visible",
+      "type": "flow.end_if",
+      "title": "结束自定义属性批量操作判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "click-elasticity-dropdown",
+      "type": "web.click",
+      "title": "点击面料弹性下拉框",
+      "params": {
+        "target": "面料弹性",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '面料弹性') or contains(normalize-space(.), 'Elasticity')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-medium-stretch",
+      "type": "web.click",
+      "title": "选择面料弹性中弹",
+      "params": {
+        "target": "中弹(Medium Stretch)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:visible:has-text(\"中弹\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:visible:has-text(\"Medium Stretch\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:visible:has-text(\"Medium Strecth\"), [role=option]:visible:has-text(\"中弹\"), [role=option]:visible:has-text(\"Medium Stretch\"), [role=option]:visible:has-text(\"Medium Strecth\")",
+        "state": "visible",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickVisible": ".ant-form-item:has(.ant-form-item-label:has-text(\"面料弹性\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item[title*=\"中弹\"]), .ant-form-item:has(.ant-form-item-label:has-text(\"面料弹性\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item:has-text(\"中弹\")), .ant-form-item:has(.ant-form-item-label:has-text(\"Elasticity\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item[title*=\"Medium\"]), .ant-form-item:has(.ant-form-item-label:has-text(\"Elasticity\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item:has-text(\"Medium\")), .ant-form-item:has(label:has-text(\"面料弹性\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item[title*=\"中弹\"]), .ant-form-item:has(label:has-text(\"面料弹性\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item:has-text(\"中弹\")), .ant-form-item:has(label:has-text(\"Elasticity\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item[title*=\"Medium\"]), .ant-form-item:has(label:has-text(\"Elasticity\")) .ant-form-item-control .ant-select:has(.ant-select-selection-item:has-text(\"Medium\"))",
+        "waitAfterClickTimeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-fit-type-dropdown",
+      "type": "web.click",
+      "title": "点击版型下拉框",
+      "params": {
+        "target": "版型(Fit Type)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '版型') or contains(normalize-space(.), 'Fit Type')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-regular-fit",
+      "type": "web.click",
+      "title": "选择版型合体",
+      "params": {
+        "target": "合体(Regular Fit)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title*=\"Regular Fit\"], .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Regular Fit\"), [role=option]:visible:has-text(\"Regular Fit\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-brand-dropdown",
+      "type": "web.click",
+      "title": "点击品牌下拉框",
+      "params": {
+        "target": "品牌(Brand Name)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '品牌') or contains(normalize-space(.), 'Brand Name')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-brand-dancing-jl-ants",
+      "type": "web.click",
+      "title": "选择品牌 Dancing JL Ants",
+      "params": {
+        "target": "Dancing JL Ants",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Dancing JL Ants\"), [role=option]:visible:has-text(\"Dancing JL Ants\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-origin-dropdown",
+      "type": "web.click",
+      "title": "点击产地下拉框",
+      "params": {
+        "target": "产地(Origin)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '产地') or contains(normalize-space(.), 'Origin')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-origin-mainland-china",
+      "type": "web.click",
+      "title": "选择产地中国大陆",
+      "params": {
+        "target": "中国大陆(Origin)(Mainland China)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"中国大陆\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Mainland China\"), [role=option]:visible:has-text(\"中国大陆\"), [role=option]:visible:has-text(\"Mainland China\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-cn-province-dropdown",
+      "type": "web.click",
+      "title": "点击中国省份下拉框",
+      "params": {
+        "target": "中国省份(CN)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '中国省份') or contains(normalize-space(.), 'CN')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-cn-province-guangdong",
+      "type": "web.click",
+      "title": "选择中国省份广东",
+      "params": {
+        "target": "广东(Guangdong)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"广东\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Guangdong\"), [role=option]:visible:has-text(\"广东\"), [role=option]:visible:has-text(\"Guangdong\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-material-add-row-2",
+      "type": "web.click",
+      "title": "材质增加第二行",
+      "params": {
+        "target": "材质加号",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' icon_add ')])[last()]",
+        "pageContext": "page3",
+        "timeoutMs": 20000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-material-add-row-3",
+      "type": "web.click",
+      "title": "材质增加第三行",
+      "params": {
+        "target": "材质加号",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' icon_add ')])[last()]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-material-row-1-dropdown",
+      "type": "web.click",
+      "title": "打开材质第一行下拉",
+      "params": {
+        "target": "材质第一行",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')])[1]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-material-row-1-cotton",
+      "type": "web.click",
+      "title": "材质第一行选择 COTTON",
+      "params": {
+        "target": "COTTON(COTTON)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"COTTON\"), [role=option]:visible:has-text(\"COTTON\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-material-row-1-percent",
+      "type": "web.input",
+      "title": "材质第一行填写 40%",
+      "params": {
+        "target": "材质第一行比例",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[contains(concat(' ', normalize-space(@class), ' '), ' ant-input-number-input ') or (not(@type='hidden') and not(ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select ')]))])[1]",
+        "value": "40",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-material-row-2-dropdown",
+      "type": "web.click",
+      "title": "打开材质第二行下拉",
+      "params": {
+        "target": "材质第二行",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')])[2]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-material-row-2-polyester",
+      "type": "web.click",
+      "title": "材质第二行选择 POLYESTER",
+      "params": {
+        "target": "POLYESTER(聚酯纤维)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"POLYESTER\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"聚酯纤维\"), [role=option]:visible:has-text(\"POLYESTER\"), [role=option]:visible:has-text(\"聚酯纤维\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-material-row-2-percent",
+      "type": "web.input",
+      "title": "材质第二行填写 40%",
+      "params": {
+        "target": "材质第二行比例",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[contains(concat(' ', normalize-space(@class), ' '), ' ant-input-number-input ') or (not(@type='hidden') and not(ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select ')]))])[2]",
+        "value": "40",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-material-row-3-dropdown",
+      "type": "web.click",
+      "title": "打开材质第三行下拉",
+      "params": {
+        "target": "材质第三行",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')])[3]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-material-row-3-search-acrylic",
+      "type": "web.input",
+      "title": "材质第三行输入 Acrylic",
+      "params": {
+        "target": "Acrylic(腈纶)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Acrylic",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-material-row-3-acrylic",
+      "type": "web.click",
+      "title": "材质第三行选择 Acrylic",
+      "params": {
+        "target": "Acrylic(腈纶)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Acrylic\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"腈纶\"), [role=option]:visible:has-text(\"Acrylic\"), [role=option]:visible:has-text(\"腈纶\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-material-row-3-percent",
+      "type": "web.input",
+      "title": "材质第三行填写 20%",
+      "params": {
+        "target": "材质第三行比例",
+        "selector": "xpath=(//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '材质') or contains(normalize-space(.), 'Material')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[contains(concat(' ', normalize-space(@class), ' '), ' ant-input-number-input ') or (not(@type='hidden') and not(ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select ')]))])[3]",
+        "value": "20",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-style-classic-style",
+      "type": "web.input",
+      "title": "填写风格 经典",
+      "params": {
+        "target": "风格(Style)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '风格') or contains(normalize-space(.), 'Style')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[not(@type='hidden')]",
+        "value": "经典(Classic Style)",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-style-classic-style",
+      "type": "web.click",
+      "title": "风格选择经典",
+      "params": {
+        "target": "经典(Classic Style)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"经典(Classic Style)\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Classic Style\"), [role=option]:visible:has-text(\"经典(Classic Style)\"), [role=option]:visible:has-text(\"Classic Style\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-silhouette-dropdown",
+      "type": "web.click",
+      "title": "打开裙型下拉",
+      "params": {
+        "target": "裙型(Silhouette)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '裙型') or contains(normalize-space(.), 'Silhouette')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-silhouette-search-loose",
+      "type": "web.input",
+      "title": "裙型输入 Loose",
+      "params": {
+        "target": "宽松(Loose)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Loose",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-silhouette-loose",
+      "type": "web.click",
+      "title": "裙型选择宽松",
+      "params": {
+        "target": "宽松(Loose)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Loose\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"宽松\"), [role=option]:visible:has-text(\"Loose\"), [role=option]:visible:has-text(\"宽松\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-season-dropdown",
+      "type": "web.click",
+      "title": "打开季节下拉",
+      "params": {
+        "target": "季节(Season)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '季节') or contains(normalize-space(.), 'Season')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-season-search-all-season",
+      "type": "web.input",
+      "title": "季节输入 All Season",
+      "params": {
+        "target": "全季节(All Season)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "All Season",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-season-all-season",
+      "type": "web.click",
+      "title": "季节选择全季节",
+      "params": {
+        "target": "全季节(All Season)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"All Season\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"全季节\"), [role=option]:visible:has-text(\"All Season\"), [role=option]:visible:has-text(\"全季节\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-age-dropdown",
+      "type": "web.click",
+      "title": "打开受众年龄下拉",
+      "params": {
+        "target": "受众年龄(Age)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '受众年龄') or contains(normalize-space(.), 'Age')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-age-search-junior",
+      "type": "web.input",
+      "title": "受众年龄输入 Junior",
+      "params": {
+        "target": "<24岁(Junior)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Junior",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-age-junior",
+      "type": "web.click",
+      "title": "受众年龄选择 Junior",
+      "params": {
+        "target": "<24岁(Junior)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Junior\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"<24岁\"), [role=option]:visible:has-text(\"Junior\"), [role=option]:visible:has-text(\"<24岁\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-fabric-type-cotton-blend",
+      "type": "web.input",
+      "title": "填写面料类型 cotton blend",
+      "params": {
+        "target": "面料类型(Fabric Type)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '面料类型') or contains(normalize-space(.), 'Fabric Type')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[not(@type='hidden')]",
+        "value": "cotton blend",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-fabric-type-cotton-blend",
+      "type": "web.click",
+      "title": "面料类型选择棉类混纺",
+      "params": {
+        "target": "棉类混纺(cotton blend)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"棉类混纺(cotton blend)\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"cotton blend\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Cotton Blended\"), [role=option]:visible:has-text(\"棉类混纺(cotton blend)\"), [role=option]:visible:has-text(\"cotton blend\"), [role=option]:visible:has-text(\"Cotton Blended\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-craft-of-weaving-dropdown",
+      "type": "web.click",
+      "title": "打开编织工艺下拉",
+      "params": {
+        "target": "编织工艺(Craft of Weaving)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '编织工艺') or contains(normalize-space(.), 'Craft of Weaving')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-craft-of-weaving-search-tatting",
+      "type": "web.input",
+      "title": "编织工艺输入 Tatting",
+      "params": {
+        "target": "梭织(Tatting)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Tatting",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-craft-of-weaving-tatting",
+      "type": "web.click",
+      "title": "编织工艺选择梭织",
+      "params": {
+        "target": "梭织(Tatting)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Tatting\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"梭织\"), [role=option]:visible:has-text(\"Tatting\"), [role=option]:visible:has-text(\"梭织\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-high-concerned-chemical-dropdown",
+      "type": "web.click",
+      "title": "打开高关注化学品下拉",
+      "params": {
+        "target": "高关注化学品(High-concerned chemical)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '高关注化学品') or contains(normalize-space(.), 'High-concerned chemical')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-high-concerned-chemical-search-none",
+      "type": "web.input",
+      "title": "高关注化学品输入 None",
+      "params": {
+        "target": "天然未处理(None)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "None",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-high-concerned-chemical-none",
+      "type": "web.click",
+      "title": "高关注化学品选择天然未处理",
+      "params": {
+        "target": "天然未处理(None)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"None\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"天然未处理\"), [role=option]:visible:has-text(\"None\"), [role=option]:visible:has-text(\"天然未处理\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-1-1-delete-button",
+      "type": "web.click",
+      "title": "点击 1:1 白底图删除按钮",
+      "params": {
+        "target": "1:1白底图删除按钮",
+        "selector": ".market-img-module .market-img-item:has(.gray-b:has-text(\"1:1白底图\")) .operate-box .icon_delete.filter-sortable, .market-img-module .market-img-item:has(.gray-b:has-text(\"1:1白底图\")) a.icon_delete, .market-img-module .market-img-item:has-text(\"1:1白底图\") .operate-box .icon_delete.filter-sortable",
+        "pageContext": "page3",
+        "noScroll": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-3-4-delete-button",
+      "type": "web.click",
+      "title": "点击 3:4 场景图删除按钮",
+      "params": {
+        "target": "3:4场景图删除按钮",
+        "selector": ".market-img-module .market-img-item:has(.gray-b:has-text(\"3:4场景图\")) .operate-box .icon_delete.filter-sortable, .market-img-module .market-img-item:has(.gray-b:has-text(\"3:4场景图\")) a.icon_delete, .market-img-module .market-img-item:has-text(\"3:4场景图\") .operate-box .icon_delete.filter-sortable",
+        "pageContext": "page3",
+        "noScroll": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "hover-marketing-1-1-add-image-box-check-menu",
+      "type": "web.hover",
+      "title": "悬停 1:1 白底图新增图片框观察菜单",
+      "params": {
+        "target": "1:1白底图新增图片框",
+        "selector": ".market-img-module .market-img-item:has(.gray-b:has-text(\"1:1白底图\")) .img-out.img-box:has(img[src*=\"addImg\"])",
+        "pageContext": "page3",
+        "noScroll": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-1-1-quote-menu-item",
+      "type": "web.click",
+      "title": "点击菜单里的引用产品图片",
+      "params": {
+        "target": "引用产品图片",
+        "selector": ".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item:has-text(\"引用产品图片\"), .ant-dropdown:not(.ant-dropdown-hidden) [role=menuitem]:has-text(\"引用产品图片\"), .ant-popover:visible button:has-text(\"引用产品图片\"), button:has-text(\"引用产品图片\"), li:has-text(\"引用产品图片\"), [role=menu] [role=menuitem]:has-text(\"引用产品图片\")",
+        "pageContext": "page3",
+        "opensModal": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-1-1-first-image",
+      "type": "web.click",
+      "title": "点击 modal 左上第一张图片",
+      "params": {
+        "target": "左上第一张产品图片",
+        "selector": ".ant-modal:visible .ant-upload-list-item:first-child, .ant-modal:visible [class*=image]:has(img):first-child, .ant-modal:visible img:first-child, .el-dialog:visible [class*=image]:has(img):first-child, [role=dialog]:visible [class*=image]:has(img):first-child",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-1-1-confirm-selection",
+      "type": "web.click",
+      "title": "点击选择",
+      "params": {
+        "target": "选择",
+        "selector": ".ant-modal:visible button:has-text(\"选择\"), .ant-modal:visible button:has-text(\"确定\"), .el-dialog:visible button:has-text(\"选择\"), .el-dialog:visible button:has-text(\"确定\"), [role=dialog]:visible button:has-text(\"选择\"), [role=dialog]:visible button:has-text(\"确定\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "hover-marketing-1-1-operate-button-check-menu",
+      "type": "web.hover",
+      "title": "悬停 1:1 白底图操作按钮观察菜单",
+      "params": {
+        "target": "1:1白底图操作按钮",
+        "selector": ".market-img-module .market-img-item:has(.gray-b:has-text(\"1:1白底图\")) .operate-box .flex-y-center:has(a.icon-operate.filter-sortable), .market-img-module .market-img-item:has(.gray-b:has-text(\"1:1白底图\")) .operate-box a.icon-operate.filter-sortable, .market-img-module .market-img-item:has-text(\"1:1白底图\") .operate-box .flex-y-center:has(a.icon-operate.filter-sortable), .market-img-module .market-img-item:has-text(\"1:1白底图\") .operate-box a.icon-operate.filter-sortable",
+        "pageContext": "page3",
+        "noScroll": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-marketing-1-1-resize-menu-item",
+      "type": "web.click",
+      "title": "点击菜单里的修改图片尺寸",
+      "params": {
+        "target": "修改图片尺寸",
+        "selector": ".ant-dropdown:visible:not(.ant-dropdown-hidden) .ant-dropdown-menu-item:has-text(\"修改图片尺寸\"), .ant-dropdown:visible:not(.ant-dropdown-hidden) [role=menuitem]:has-text(\"修改图片尺寸\"), .ant-popover:visible [role=menuitem]:has-text(\"修改图片尺寸\"), .ant-popover:visible .ant-dropdown-menu-item:has-text(\"修改图片尺寸\"), [role=menu]:visible [role=menuitem]:has-text(\"修改图片尺寸\"), [role=menu]:visible .ant-dropdown-menu-item:has-text(\"修改图片尺寸\")",
+        "pageContext": "page3",
+        "opensModal": true,
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-resize-image-modal",
+      "type": "web.wait_for",
+      "title": "等待批量改图片尺寸弹窗",
+      "params": {
+        "selector": ".ant-modal:visible:has-text(\"批量改图片尺寸\"), [role=dialog]:visible:has-text(\"批量改图片尺寸\"), .el-dialog:visible:has-text(\"批量改图片尺寸\")",
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "open-resize-mode-select",
+      "type": "web.click",
+      "title": "打开调整方式下拉",
+      "params": {
+        "target": "调整方式",
+        "selector": ".ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"等比例调整\"]) .ant-select-selector, [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"等比例调整\"]) .ant-select-selector",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-custom-ratio-resize",
+      "type": "web.click",
+      "title": "选择自定义比例调整",
+      "params": {
+        "target": "自定义比例调整",
+        "selector": ".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"自定义比例调整\"), [role=option]:has-text(\"自定义比例调整\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "open-resize-dimension-select",
+      "type": "web.click",
+      "title": "打开图片宽下拉",
+      "params": {
+        "target": "图片宽",
+        "selector": ".ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"图片宽\"]) .ant-select-selector, [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"图片宽\"]) .ant-select-selector",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-image-width",
+      "type": "web.click",
+      "title": "选择图片宽",
+      "params": {
+        "target": "图片宽",
+        "selector": ".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"图片宽\"), [role=option]:has-text(\"图片宽\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-resize-width-800",
+      "type": "web.input",
+      "title": "输入图片宽 800px",
+      "params": {
+        "target": "图片宽数值",
+        "selector": ".ant-modal:visible form.ant-form-inline input[name=\"valueW\"], [role=dialog]:visible form.ant-form-inline input[name=\"valueW\"], form.ant-form-inline input[name=\"valueW\"]",
+        "value": "800",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "open-resize-ratio-select",
+      "type": "web.click",
+      "title": "打开图片比例下拉",
+      "params": {
+        "target": "图片比例",
+        "selector": ".ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1 : 1\"]) .ant-select-selector, .ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1:1\"]) .ant-select-selector, .ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"保持原图比例\"]) .ant-select-selector, [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1 : 1\"]) .ant-select-selector, [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1:1\"]) .ant-select-selector, [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"保持原图比例\"]) .ant-select-selector",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-resize-ratio-1-1",
+      "type": "web.click",
+      "title": "选择图片比例 1:1",
+      "params": {
+        "target": "1:1",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title=\"1:1\"], .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title=\"1 : 1\"], .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title=\"1：1\"], .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has(.ant-select-item-option-content:text-is(\"1:1\")), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has(.ant-select-item-option-content:text-is(\"1 : 1\")), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has(.ant-select-item-option-content:text-is(\"1：1\")), [role=option]:visible[title=\"1:1\"], [role=option]:visible[title=\"1 : 1\"], [role=option]:visible:has-text(\"1:1\"), [role=option]:visible:has-text(\"1 : 1\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-resize-ratio-1-1-selected",
+      "type": "web.wait_for",
+      "title": "确认图片比例已选择 1:1",
+      "params": {
+        "selector": ".ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1:1\"]), .ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1 : 1\"]), .ant-modal:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1：1\"]), [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1:1\"]), [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1 : 1\"]), [role=dialog]:visible form.ant-form-inline .ant-select:has(.ant-select-selection-item[title=\"1：1\"])",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-generate-jpg-image",
+      "type": "web.click",
+      "title": "点击生成JPG图片",
+      "params": {
+        "target": "生成JPG图片",
+        "selector": ".ant-modal:visible button.ant-btn-primary:has-text(\"生成JPG图片\"), [role=dialog]:visible button.ant-btn-primary:has-text(\"生成JPG图片\"), button.ant-btn-primary:has-text(\"生成JPG图片\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-generate-jpg",
+      "type": "flow.wait",
+      "title": "等待 JPG 图片生成",
+      "params": {
+        "seconds": 5,
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-resize-image-modal-closed",
+      "type": "web.wait_for",
+      "title": "等待批量改图片尺寸弹窗关闭",
+      "params": {
+        "selector": ".ant-modal:visible:has-text(\"批量改图片尺寸\"), [role=dialog]:visible:has-text(\"批量改图片尺寸\"), .el-dialog:visible:has-text(\"批量改图片尺寸\")",
+        "state": "hidden",
+        "pageContext": "page3",
+        "timeoutMs": 60000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-generate-marketing-images",
+      "type": "web.click",
+      "title": "点击营销图片一键生成",
+      "params": {
+        "target": "营销图片一键生成",
+        "selector": ".market-img-module .generate-market-img button:has-text(\"一键生成\"), .ant-form-item:has(label[title=\"营销图片\"]) .generate-market-img button:has-text(\"一键生成\"), .ant-row:has(label[title=\"营销图片\"]) button:has-text(\"一键生成\"), button:has-text(\"一键生成\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-retail-price",
+      "type": "web.input",
+      "title": "批量填写零售价",
+      "params": {
+        "target": "SKU 表头零售价",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(3) input[placeholder=\"零售价\"][class*=\"w-70\"]:visible",
+        "valueExpression": "${productRemark.costPrice} * 2",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-goods-value",
+      "type": "web.input",
+      "title": "批量填写货值",
+      "params": {
+        "target": "SKU 表头货值",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(4) input[placeholder=\"货值\"][class*=\"w-70\"]:visible",
+        "valueExpression": "${productRemark.costPrice} * 1.5",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-stock",
+      "type": "web.input",
+      "title": "批量填写库存",
+      "params": {
+        "target": "SKU 表头库存",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(6) input[placeholder=\"库存\"][class*=\"w-70\"]:visible",
+        "value": "1000",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-weight",
+      "type": "web.input",
+      "title": "批量填写重量 kg",
+      "params": {
+        "target": "SKU 表头重量",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(7) input[placeholder=\"重量\"][class*=\"w-70\"]:visible",
+        "valueExpression": "${productRemark.weight} / 1000",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-package-length",
+      "type": "web.input",
+      "title": "批量填写包装长",
+      "params": {
+        "target": "SKU 表头包装长",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"长\"][class*=\"w-60\"]:visible",
+        "value": "35",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-package-width",
+      "type": "web.input",
+      "title": "批量填写包装宽",
+      "params": {
+        "target": "SKU 表头包装宽",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"宽\"][class*=\"w-60\"]:visible",
+        "value": "30",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sku-batch-package-height",
+      "type": "web.input",
+      "title": "批量填写包装高",
+      "params": {
+        "target": "SKU 表头包装高",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"高\"][class*=\"w-60\"]:visible",
+        "value": "4",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "check-sku-batch-inputs-before-fill",
+      "type": "web.wait_for",
+      "title": "检查 SKU 批量输入框已填写",
+      "params": {
+        "target": "SKU 批量输入框",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "inputValues": [
+          {
+            "target": "SKU 表头零售价",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(3) input[placeholder=\"零售价\"][class*=\"w-70\"]:visible",
+            "valueExpression": "${productRemark.costPrice} * 2"
+          },
+          {
+            "target": "SKU 表头货值",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(4) input[placeholder=\"货值\"][class*=\"w-70\"]:visible",
+            "valueExpression": "${productRemark.costPrice} * 1.5"
+          },
+          {
+            "target": "SKU 表头库存",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(6) input[placeholder=\"库存\"][class*=\"w-70\"]:visible",
+            "value": "1000"
+          },
+          {
+            "target": "SKU 表头重量",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(7) input[placeholder=\"重量\"][class*=\"w-70\"]:visible",
+            "valueExpression": "${productRemark.weight} / 1000"
+          },
+          {
+            "target": "SKU 表头包装长",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"长\"][class*=\"w-60\"]:visible",
+            "value": "35"
+          },
+          {
+            "target": "SKU 表头包装宽",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"宽\"][class*=\"w-60\"]:visible",
+            "value": "30"
+          },
+          {
+            "target": "SKU 表头包装高",
+            "selector": "table.myj-table:visible thead tr:first-child th:nth-child(8) input[placeholder=\"高\"][class*=\"w-60\"]:visible",
+            "value": "4"
+          }
+        ]
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-sku-batch-fill",
+      "type": "web.click",
+      "title": "点击 SKU 批量填充",
+      "params": {
+        "target": "SKU 批量填充",
+        "selector": "table.myj-table:visible thead tr:first-child button:has-text(\"批量填充\"):visible:not([disabled])",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-logistics-attribute-batch",
+      "type": "web.click",
+      "title": "点击物流属性批量",
+      "params": {
+        "target": "物流属性批量",
+        "selector": "table.myj-table:visible thead tr:nth-child(2) th:has-text(\"物流属性\") span.link:has-text(\"批量\"), table.myj-table:visible thead tr:nth-child(2) th:has-text(\"Logistics\") span.link:has-text(\"批量\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "opensModal": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-logistics-attribute-modal",
+      "type": "web.wait_for",
+      "title": "等待物流属性弹窗",
+      "params": {
+        "target": "物流属性弹窗",
+        "selector": ".ant-modal:visible:has-text(\"物流属性\"), [role=dialog]:visible:has-text(\"物流属性\"), .el-dialog:visible:has-text(\"物流属性\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-common-goods-unchecked",
+      "type": "flow.if",
+      "title": "如果普货未勾选",
+      "params": {
+        "selector": ".ant-modal:visible label.ant-checkbox-wrapper:has-text(\"普货\"):not(:has(.ant-checkbox-checked)), [role=dialog]:visible label.ant-checkbox-wrapper:has-text(\"普货\"):not(:has(.ant-checkbox-checked)), .el-dialog:visible label:has-text(\"普货\"):not(:has(.ant-checkbox-checked))",
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-common-goods-checkbox",
+      "type": "web.click",
+      "title": "勾选普货",
+      "params": {
+        "target": "普货",
+        "selector": ".ant-modal:visible label.ant-checkbox-wrapper:has-text(\"普货\"), [role=dialog]:visible label.ant-checkbox-wrapper:has-text(\"普货\"), .el-dialog:visible label:has-text(\"普货\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-common-goods-unchecked",
+      "type": "flow.end_if",
+      "title": "结束普货勾选判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "click-logistics-attribute-confirm",
+      "type": "web.click",
+      "title": "确认物流属性",
+      "params": {
+        "target": "物流属性确定",
+        "selector": ".ant-modal:visible:has-text(\"物流属性\") button.ant-btn-primary:has-text(\"确定\"), .ant-modal:visible:has-text(\"物流属性\") button.ant-btn-primary:has-text(\"确 定\"), [role=dialog]:visible:has-text(\"物流属性\") button.ant-btn-primary:has-text(\"确定\"), [role=dialog]:visible:has-text(\"物流属性\") button.ant-btn-primary:has-text(\"确 定\"), .el-dialog:visible:has-text(\"物流属性\") button:has-text(\"确定\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-modal:visible:has-text(\"物流属性\"), [role=dialog]:visible:has-text(\"物流属性\"), .el-dialog:visible:has-text(\"物流属性\")",
+        "waitAfterClickTimeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "clean-pc-description-keep-images",
+      "type": "web.input",
+      "title": "清理 PC 端描述文字保留图片",
+      "params": {
+        "target": "PC端描述富文本",
+        "selector": ".ant-form-item:has(label[title=\"PC端描述\"]) textarea[id^=\"ckeditor\"], .ant-form-item:has(label:has-text(\"PC端描述\")) textarea[id^=\"ckeditor\"], .ant-form-item:has(label[title=\"PC描述\"]) textarea[id^=\"ckeditor\"], .ant-form-item:has(label:has-text(\"PC描述\")) textarea[id^=\"ckeditor\"], textarea#ckeditor30",
+        "pageContext": "page3",
+        "state": "attached",
+        "timeoutMs": 15000,
+        "value": "",
+        "allowEmpty": true,
+        "richTextKeepImagesOnly": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-pc-description-reference-template",
+      "type": "web.click",
+      "title": "点击 PC 描述引用模版",
+      "params": {
+        "target": "PC端描述引用模版",
+        "selector": ".ant-form-item:has(label[title=\"PC端描述\"]) .cke a[title=\"引用模板\"], .ant-form-item:has(label[title=\"PC端描述\"]) .cke a[title=\"引用模版\"], .ant-form-item:has(label:has-text(\"PC端描述\")) .cke a[title=\"引用模板\"], .ant-form-item:has(label:has-text(\"PC端描述\")) .cke a[title=\"引用模版\"], #cke_ckeditor30 a[title=\"引用模板\"], #cke_ckeditor30 a[title=\"引用模版\"], a.cke_button__smttemplateprops",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "opensModal": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-product-info-module-modal",
+      "type": "web.wait_for",
+      "title": "等待选择产品信息模块弹窗",
+      "params": {
+        "target": "选择产品信息模块弹窗",
+        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\"), [role=dialog]:visible:has-text(\"选择产品信息模块\"), .el-dialog:visible:has-text(\"选择产品信息模块\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-custom-template-tab",
+      "type": "web.click",
+      "title": "点击自定义模版",
+      "params": {
+        "target": "自定义模版",
+        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), .ant-modal:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\"), .el-dialog:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), .el-dialog:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "if-pc-template-type-unchecked",
+      "type": "flow.if",
+      "title": "如果对应类型模版未勾选",
+      "params": {
+        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked)), [role=dialog]:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked)), .el-dialog:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked))",
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-pc-template-type-checkbox",
+      "type": "web.click",
+      "title": "勾选对应类型模版",
+      "params": {
+        "target": "${productRemark.type} 模版复选框",
+        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label, [role=dialog]:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label, .el-dialog:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-pc-template-type-unchecked",
+      "type": "flow.end_if",
+      "title": "结束对应类型模版勾选判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "click-product-info-module-confirm",
+      "type": "web.click",
+      "title": "确认产品信息模块",
+      "params": {
+        "target": "产品信息模块确定",
+        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"选择\"), .ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确定\"), .ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确 定\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"选择\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确定\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确 定\"), .el-dialog:visible:has-text(\"选择产品信息模块\") button:has-text(\"选择\"), .el-dialog:visible:has-text(\"选择产品信息模块\") button:has-text(\"确定\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-modal:visible:has-text(\"选择产品信息模块\"), [role=dialog]:visible:has-text(\"选择产品信息模块\"), .el-dialog:visible:has-text(\"选择产品信息模块\")",
+        "waitAfterClickTimeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-wireless-description-none",
+      "type": "web.click",
+      "title": "点击不填写无线端描述",
+      "params": {
+        "target": "不填写无线端描述",
+        "selector": ".ant-form-item:has(label:has-text(\"无线端描述\")) label:has-text(\"不填写无线端描述\"), .ant-row:has-text(\"无线端描述\") label:has-text(\"不填写无线端描述\"), label.ant-radio-wrapper:has-text(\"不填写无线端描述\"), label:has-text(\"不填写无线端描述\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-wireless-description-new-editor",
+      "type": "web.click",
+      "title": "点击使用新版编辑器",
+      "params": {
+        "target": "使用新版编辑器",
+        "selector": ".ant-form-item:has(label:has-text(\"无线端描述\")) label:has-text(\"使用新版编辑器\"), .ant-row:has-text(\"无线端描述\") label:has-text(\"使用新版编辑器\"), label.ant-radio-wrapper:has-text(\"使用新版编辑器\"), label:has-text(\"使用新版编辑器\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "opensModal": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-wireless-new-editor",
+      "type": "web.wait_for",
+      "title": "等待新版编辑器打开",
+      "params": {
+        "target": "新版编辑器",
+        "selector": "body:has-text(\"新版编辑器\") button:has-text(\"保存\"), body:has-text(\"新版编辑器\") a:has-text(\"根据PC端描述一键生成\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 20000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-wireless-generate-from-pc",
+      "type": "web.click",
+      "title": "点击根据PC端描述一键生成",
+      "params": {
+        "target": "根据PC端描述一键生成",
+        "selector": "a:has-text(\"根据PC端描述一键生成\"), button:has-text(\"根据PC端描述一键生成\"), span:has-text(\"根据PC端描述一键生成\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "opensModal": true,
+        "waitAfterClickVisible": ".ant-modal:visible .ant-modal-confirm-body-wrapper:has(.ant-modal-confirm-title:has-text(\"提示\")):has-text(\"无线端内容\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\"), [role=dialog]:visible:has-text(\"提示\"):has-text(\"无线端内容\"), .el-dialog:visible:has-text(\"提示\"):has-text(\"无线端内容\")",
+        "waitAfterClickTimeoutMs": 10000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-wireless-generate-confirm",
+      "type": "web.click",
+      "title": "确认一键生成无线端描述",
+      "params": {
+        "target": "一键生成确定",
+        "selector": ".ant-modal:visible:has(.ant-modal-confirm-title:has-text(\"提示\")):has-text(\"无线端内容\") .ant-modal-confirm-btns button.ant-btn-primary:has-text(\"确 定\"), .ant-modal:visible:has(.ant-modal-confirm-title:has-text(\"提示\")):has-text(\"无线端内容\") .ant-modal-confirm-btns button.ant-btn-primary:has-text(\"确定\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\") .ant-modal-confirm-btns button.ant-btn-primary:has-text(\"确 定\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\") .ant-modal-confirm-btns button.ant-btn-primary:has-text(\"确定\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\") .ant-modal-footer button.ant-btn-primary:has-text(\"确 定\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\") .ant-modal-footer button.ant-btn-primary:has-text(\"确定\"), [role=dialog]:visible:has-text(\"提示\"):has-text(\"无线端内容\") button.ant-btn-primary:has-text(\"确 定\"), [role=dialog]:visible:has-text(\"提示\"):has-text(\"无线端内容\") button.ant-btn-primary:has-text(\"确定\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-modal:visible:has(.ant-modal-confirm-title:has-text(\"提示\")):has-text(\"无线端内容\"), .ant-modal:visible:has-text(\"提示\"):has-text(\"无线端内容\"), [role=dialog]:visible:has-text(\"提示\"):has-text(\"无线端内容\"), .el-dialog:visible:has-text(\"提示\"):has-text(\"无线端内容\")",
+        "waitAfterClickTimeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-wireless-generate",
+      "type": "flow.wait",
+      "title": "等待无线端生成完成",
+      "params": {
+        "seconds": 2
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-wireless-new-editor-save",
+      "type": "web.click",
+      "title": "保存新版编辑器",
+      "params": {
+        "target": "新版编辑器保存",
+        "selector": ".ant-modal:visible .ant-modal-header .top-header:has-text(\"新版编辑器\") .title-right button.btn-orange:has-text(\"保存\"):visible, .ant-modal:visible .ant-modal-header .top-header:has-text(\"新版编辑器\") .title-right button.ant-btn.btn-orange:has-text(\"保存\"):visible",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-modal:visible .ant-modal-header .top-header:has-text(\"新版编辑器\") .title-right button.btn-orange:has-text(\"保存\"), .ant-modal:visible .ant-modal-header .top-header:has-text(\"新版编辑器\") .title-right button.ant-btn.btn-orange:has-text(\"保存\")",
+        "waitAfterClickTimeoutMs": 20000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-package-info-weight",
+      "type": "web.input",
+      "title": "填写包装后重量",
+      "params": {
+        "target": "包装后重量",
+        "selector": ".ant-form-item:has(label:has-text(\"包装后重量\")) input:visible:not([type=checkbox]):not([type=radio]), .ant-row:has-text(\"包装后重量\") input:visible:not([type=checkbox]):not([type=radio])",
+        "valueExpression": "${productRemark.weight} / 1000",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-package-info-length",
+      "type": "web.input",
+      "title": "填写包装后尺寸长",
+      "params": {
+        "target": "包装后尺寸长",
+        "selector": ":nth-match(.ant-form-item:has(label:has-text(\"包装后尺寸\")) input:visible:not([type=checkbox]):not([type=radio]), 1), :nth-match(.ant-row:has-text(\"包装后尺寸\") input:visible:not([type=checkbox]):not([type=radio]), 1)",
+        "value": "35",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-package-info-width",
+      "type": "web.input",
+      "title": "填写包装后尺寸宽",
+      "params": {
+        "target": "包装后尺寸宽",
+        "selector": ":nth-match(.ant-form-item:has(label:has-text(\"包装后尺寸\")) input:visible:not([type=checkbox]):not([type=radio]), 2), :nth-match(.ant-row:has-text(\"包装后尺寸\") input:visible:not([type=checkbox]):not([type=radio]), 2)",
+        "value": "30",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-package-info-height",
+      "type": "web.input",
+      "title": "填写包装后尺寸高",
+      "params": {
+        "target": "包装后尺寸高",
+        "selector": ":nth-match(.ant-form-item:has(label:has-text(\"包装后尺寸\")) input:visible:not([type=checkbox]):not([type=radio]), 3), :nth-match(.ant-row:has-text(\"包装后尺寸\") input:visible:not([type=checkbox]):not([type=radio]), 3)",
+        "value": "4",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-freight-template-dropdown",
+      "type": "web.click",
+      "title": "打开运费模板下拉",
+      "params": {
+        "target": "运费模板",
+        "selector": ".ant-form-item:has(label:has-text(\"运费模板\")) .ant-select-selector, .ant-form-item:has(label:has-text(\"运费模版\")) .ant-select-selector, .ant-row:has-text(\"运费模板\") .ant-select-selector, .ant-row:has-text(\"运费模版\") .ant-select-selector",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-freight-template-by-weight",
+      "type": "web.click",
+      "title": "按重量选择运费模板",
+      "params": {
+        "target": "${freightTemplateByWeight(productRemark.weight)} 运费模板",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"${freightTemplateByWeight(productRemark.weight)}\"), [role=option]:visible:has-text(\"${freightTemplateByWeight(productRemark.weight)}\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-freight-template-selected",
+      "type": "web.wait_for",
+      "title": "确认运费模板已按重量选择",
+      "params": {
+        "target": "运费模板已选择",
+        "selector": ".ant-form-item:has(label:has-text(\"运费模板\")) .ant-select-selection-item:has-text(\"${freightTemplateByWeight(productRemark.weight)}\"), .ant-form-item:has(label:has-text(\"运费模版\")) .ant-select-selection-item:has-text(\"${freightTemplateByWeight(productRemark.weight)}\"), .ant-row:has-text(\"运费模板\") .ant-select-selection-item:has-text(\"${freightTemplateByWeight(productRemark.weight)}\"), .ant-row:has-text(\"运费模版\") .ant-select-selection-item:has-text(\"${freightTemplateByWeight(productRemark.weight)}\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-service-template-dropdown",
+      "type": "web.click",
+      "title": "打开服务模板下拉",
+      "params": {
+        "target": "服务模板",
+        "selector": ".ant-form-item:has(label:has-text(\"服务模板\")) .ant-select-selector, .ant-form-item:has(label:has-text(\"服务模版\")) .ant-select-selector, .ant-row:has-text(\"服务模板\") .ant-select-selector, .ant-row:has-text(\"服务模版\") .ant-select-selector",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-service-template-new-sellers",
+      "type": "web.click",
+      "title": "选择新卖家服务模板",
+      "params": {
+        "target": "Service Template for New Sellers",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Service Template for New Sellers\"), [role=option]:visible:has-text(\"Service Template for New Sellers\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-service-template-selected",
+      "type": "web.wait_for",
+      "title": "确认服务模板已选择",
+      "params": {
+        "target": "服务模板已选择",
+        "selector": ".ant-form-item:has(label:has-text(\"服务模板\")) .ant-select-selection-item:has-text(\"Service Template for New Sellers\"), .ant-form-item:has(label:has-text(\"服务模版\")) .ant-select-selection-item:has-text(\"Service Template for New Sellers\"), .ant-row:has-text(\"服务模板\") .ant-select-selection-item:has-text(\"Service Template for New Sellers\"), .ant-row:has-text(\"服务模版\") .ant-select-selection-item:has-text(\"Service Template for New Sellers\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-price-excluding-tax",
+      "type": "web.click",
+      "title": "选择不含关税报价",
+      "params": {
+        "target": "不含关税报价",
+        "selector": ".ant-form-item:has(label:has-text(\"报价是否含关税\")) label:has-text(\"不含关税报价\"), .ant-row:has-text(\"报价是否含关税\") label:has-text(\"不含关税报价\"), label.ant-radio-wrapper:has-text(\"不含关税报价\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-eu-responsible-person-dropdown",
+      "type": "web.click",
+      "title": "打开欧盟责任人下拉",
+      "params": {
+        "target": "欧盟责任人",
+        "selector": ".ant-form-item:has(label:has-text(\"欧盟责任人\")) .ant-select-selector, .ant-row:has-text(\"欧盟责任人\") .ant-select-selector",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-eu-responsible-person-discount-industry",
+      "type": "web.click",
+      "title": "选择欧盟责任人 DISCOUNT INDUSTRY",
+      "params": {
+        "target": "DISCOUNT INDUSTRY",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"DISCOUNT INDUSTRY\"), [role=option]:visible:has-text(\"DISCOUNT INDUSTRY\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-eu-responsible-person-selected",
+      "type": "web.wait_for",
+      "title": "确认欧盟责任人已选择",
+      "params": {
+        "target": "欧盟责任人已选择",
+        "selector": ".ant-form-item:has(label:has-text(\"欧盟责任人\")) .ant-select-selection-item:has-text(\"DISCOUNT INDUSTRY\"), .ant-row:has-text(\"欧盟责任人\") .ant-select-selection-item:has-text(\"DISCOUNT INDUSTRY\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-brand-manufacturer-dropdown",
+      "type": "web.click",
+      "title": "打开品牌制造商下拉",
+      "params": {
+        "target": "品牌制造商",
+        "selector": ".ant-form-item:has(label:has-text(\"品牌制造商\")) .ant-select-selector, .ant-row:has-text(\"品牌制造商\") .ant-select-selector",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-brand-manufacturer-baiti",
+      "type": "web.click",
+      "title": "选择品牌制造商 Lu'an Baiti",
+      "params": {
+        "target": "Lu'an Baiti Translation Co., Ltd",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Lu'an Baiti Translation Co., Ltd\"), [role=option]:visible:has-text(\"Lu'an Baiti Translation Co., Ltd\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-brand-manufacturer-selected",
+      "type": "web.wait_for",
+      "title": "确认品牌制造商已选择",
+      "params": {
+        "target": "品牌制造商已选择",
+        "selector": ".ant-form-item:has(label:has-text(\"品牌制造商\")) .ant-select-selection-item:has-text(\"Lu'an Baiti Translation Co., Ltd\"), .ant-row:has-text(\"品牌制造商\") .ant-select-selection-item:has-text(\"Lu'an Baiti Translation Co., Ltd\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "ai-confirm-before-save",
+      "type": "ai.ask",
+      "title": "AI 保存前检查",
+      "params": {
+        "saveAs": "ai-confirm-before-save",
+        "screenshot": true,
+        "pageContext": "page3",
+        "prompt": "请检查当前详情页是否已准备好保存：标题区域是否可见，是否存在阻塞弹窗，是否有明显必填错误。只返回 JSON。"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-detail-save",
+      "type": "web.click",
+      "title": "保存当前商品",
+      "params": {
+        "target": "详情页保存",
+        "selector": "button.ant-btn:visible:has-text(\"保存\"):not(:has-text(\"保存并下一步\")):not(:has-text(\"确 定\")), button:visible:has-text(\"保存\"):not(:has-text(\"保存并下一步\")):not(:has-text(\"确 定\")), a.ant-btn:visible:has-text(\"保存\"):not(:has-text(\"保存并下一步\"))",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-detail-save",
+      "type": "flow.wait",
+      "title": "等待商品保存完成",
+      "params": {
+        "seconds": 2,
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "close-detail-tab-back-to-list",
+      "type": "web.close_tab",
+      "title": "关闭当前商品标签并返回列表",
+      "params": {
+        "pageContext": "page3",
+        "switchToPageContext": "page2"
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-edit-button-visible",
+      "type": "flow.end_if",
+      "title": "结束商品存在判断",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "end-loop-products",
+      "type": "flow.end_loop",
+      "title": "结束商品循环",
+      "params": {},
+      "disabled": false
+    }
+  ],
+  "pageObjects": {
+    "page1": {
+      "name": "店小秘首页/登录态入口",
+      "role": "打开首页、判断是否需要登录、只处理账号密码和登录按钮",
+      "urlIncludes": [
+        "/home.htm",
+        "/index.htm"
+      ],
+      "forbidden": [
+        "不要处理商品列表",
+        "不要处理商品标题",
+        "不要点击验证码"
+      ]
+    },
+    "page2": {
+      "name": "速卖通采集箱草稿列表页",
+      "role": "识别商品列表、弹窗、分页和每行编辑按钮，只做列表页操作",
+      "urlIncludes": [
+        "/web/smt/smtProductList/draft"
+      ],
+      "primaryElements": [
+        "商品表格",
+        "第一行编辑按钮",
+        "列表页弹窗"
+      ]
+    },
+    "pageCategory": {
+      "name": "编辑分类页",
+      "role": "只处理变种主题下拉菜单，将颜色分类选 Color、尺码选 Size",
+      "urlIncludes": [
+        "/web/modifyCategory"
+      ],
+      "forbidden": [
+        "不要选择页面顶部类目下拉"
+      ]
+    },
+    "pageEditEntry": {
+      "name": "点击编辑后的中间判断页",
+      "role": "只用于判断当前到底进入了编辑分类页还是商品详情编辑页，不能套用列表页操作",
+      "possiblePages": [
+        "pageCategory",
+        "page3"
+      ],
+      "forbidden": [
+        "不要继续点击列表页编辑按钮"
+      ]
+    },
+    "page3": {
+      "name": "商品详情编辑页",
+      "role": "只处理详情页标题、详情页弹窗、保存按钮；不要使用列表页编辑按钮语境",
+      "urlExcludes": [
+        "/web/smt/smtProductList/draft",
+        "/web/modifyCategory",
+        "/home.htm",
+        "/index.htm"
+      ],
+      "htmlHints": [
+        "商品标题",
+        "产品标题",
+        "保存"
+      ]
+    }
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI RPA 弹窗演示</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; }
+    .ant-modal {
+      background: white;
+      border: 1px solid #d8dee9;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, .18);
+      left: 80px;
+      padding: 22px;
+      position: fixed;
+      top: 80px;
+      width: 360px;
+      z-index: 10;
+    }
+    .ant-modal-close { float: right; height: 30px; width: 30px; }
+  </style>
+</head>
+<body>
+  <h1>弹窗测试页</h1>
+  <p id="status">modal-open</p>
+  <div class="ant-modal" role="dialog" aria-label="测试弹窗">
+    <button class="ant-modal-close" type="button" aria-label="Close">×</button>
+    <h2>页面弹窗</h2>
+    <p>这是页面加载后的干扰弹窗。</p>
+  </div>
+  <script>
+    document.querySelector('.ant-modal-close').addEventListener('click', () => {
+      document.querySelector('.ant-modal').remove();
+      document.getElementById('status').textContent = 'modal-closed';
+    });
+  </script>
+</body>
+</html>

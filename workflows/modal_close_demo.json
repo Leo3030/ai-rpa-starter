@@ -1,0 +1,23 @@
+{
+  "id": "modal-close-demo",
+  "name": "页面跳转后自动关闭弹窗演示",
+  "version": "0.1.0",
+  "nodes": [
+    {
+      "id": "open-modal-page",
+      "type": "web.open",
+      "title": "打开弹窗测试页",
+      "params": {
+        "url": "fixtures/modal_demo.html"
+      }
+    },
+    {
+      "id": "wait-modal-closed",
+      "type": "web.wait_for",
+      "title": "确认弹窗已关闭",
+      "params": {
+        "text": "modal-closed"
+      }
+    }
+  ]
+}

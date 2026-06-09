@@ -1,0 +1,61 @@
+{
+  "id": "local-login-demo",
+  "name": "本地登录演示流程",
+  "version": "0.1.0",
+  "nodes": [
+    {
+      "id": "open-local-login",
+      "type": "web.open",
+      "title": "打开本地登录页面",
+      "params": {
+        "url": "fixtures/login_demo.html"
+      }
+    },
+    {
+      "id": "input-account",
+      "type": "web.input",
+      "title": "输入账号",
+      "params": {
+        "target": "账号",
+        "selector": "input[name=account]",
+        "value": "demo_user"
+      }
+    },
+    {
+      "id": "input-password",
+      "type": "web.input",
+      "title": "输入密码",
+      "params": {
+        "target": "密码",
+        "selector": "input[name=password]",
+        "value": "demo_password"
+      }
+    },
+    {
+      "id": "wait-before-login",
+      "type": "flow.wait",
+      "title": "等待登录表单稳定",
+      "params": {
+        "seconds": 1
+      }
+    },
+    {
+      "id": "click-login",
+      "type": "web.click",
+      "title": "点击登录",
+      "params": {
+        "target": "登录",
+        "selector": "button[type=submit]"
+      }
+    },
+    {
+      "id": "wait-result",
+      "type": "web.wait_for",
+      "title": "等待登录结果",
+      "params": {
+        "text": "captcha-safe"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI RPA 本地登录演示</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; }
+    label { display: block; margin: 12px 0; }
+    input { height: 32px; min-width: 260px; padding: 0 10px; }
+    button { height: 36px; padding: 0 18px; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>AI RPA 本地登录演示</h1>
+  <form id="loginForm">
+    <label>账号 <input name="account" placeholder="账号"></label>
+    <label>密码 <input name="password" type="password" placeholder="密码"></label>
+    <label>验证码 <input name="captcha" placeholder="验证码"></label>
+    <button type="submit">登录</button>
+  </form>
+  <pre id="result">ready</pre>
+  <script>
+    const result = document.getElementById('result');
+    const captcha = document.querySelector('input[name=captcha]');
+    const markCaptchaTouched = () => {
+      result.textContent = 'captcha-touched';
+      document.body.dataset.captchaTouched = '1';
+    };
+    captcha.addEventListener('focus', markCaptchaTouched);
+    captcha.addEventListener('click', markCaptchaTouched);
+
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      if (document.body.dataset.captchaTouched === '1') {
+        result.textContent = 'fail: captcha was touched';
+        return;
+      }
+      result.textContent = [
+        'login-ok',
+        'account=' + data.get('account'),
+        data.get('password') ? 'password-filled' : 'password-empty',
+        'captcha-safe'
+      ].join('\n');
+    });
+  </script>
+</body>
+</html>
+
