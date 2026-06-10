@@ -12,7 +12,13 @@ if (-not (Test-Path ".venv")) {
 
 $env:PLAYWRIGHT_BROWSERS_PATH = "0"
 $env:PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT = "300000"
-.\.venv\Scripts\python.exe -m playwright install chromium
+$LocalBrowsers = Join-Path $Root ".venv\Lib\site-packages\playwright\driver\package\.local-browsers"
+$ChromiumBrowsers = Get-ChildItem -Path $LocalBrowsers -Directory -Filter "chromium-*" -ErrorAction SilentlyContinue
+if ($ChromiumBrowsers) {
+  Write-Host "Found local Playwright Chromium, skipping browser download: $($ChromiumBrowsers[0].FullName)"
+} else {
+  .\.venv\Scripts\python.exe -m playwright install chromium
+}
 
 $env:PYTHONPATH = "src"
 $env:PYINSTALLER_CONFIG_DIR = ".pyinstaller-cache"
