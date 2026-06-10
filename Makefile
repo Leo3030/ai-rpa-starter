@@ -22,7 +22,9 @@ desktop:
 	PYTHONPATH=src .venv/bin/python -m ai_rpa.desktop_app
 
 package-mac:
-	PYINSTALLER_CONFIG_DIR=.pyinstaller-cache PYTHONPATH=src .venv/bin/pyinstaller --noconfirm packaging/ai-rpa-desktop.spec
+	PLAYWRIGHT_BROWSERS_PATH=0 PYTHONPATH=src .venv/bin/python -m playwright install chromium
+	PYINSTALLER_CONFIG_DIR=.pyinstaller-cache PLAYWRIGHT_BROWSERS_PATH=0 PYTHONPATH=src .venv/bin/pyinstaller --noconfirm packaging/ai-rpa-desktop.spec
 
 package-windows:
-	PYINSTALLER_CONFIG_DIR=.pyinstaller-cache pyinstaller --noconfirm packaging/ai-rpa-desktop.spec
+	PLAYWRIGHT_BROWSERS_PATH=0 python -m playwright install chromium
+	PYINSTALLER_CONFIG_DIR=.pyinstaller-cache PLAYWRIGHT_BROWSERS_PATH=0 pyinstaller --noconfirm packaging/ai-rpa-desktop.spec

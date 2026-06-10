@@ -66,6 +66,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\build_windows.ps1
 ```
 
+Windows 桌面打包会安装 `requirements-desktop.txt`。这个依赖集不包含
+`robotframework-browser`，可以避开 Windows 上常见的 `grpcio` wheel 冲突。
+只有要跑 Robot Framework 示例时才需要完整的 `requirements.txt`。
+
 Windows 版产物：
 
 ```text
@@ -77,11 +81,9 @@ dist\AI RPA Starter\AI RPA Starter.exe
 - macOS: `~/Library/Application Support/AI RPA Starter/`
 - Windows: `%APPDATA%\AI RPA Starter\`
 
-`.env` 和 `browser-profile/` 不会被打进安装包。请在用户数据目录或启动目录放置 `.env`，并确认目标机器已安装 Playwright Chromium：
+`.env` 和 `browser-profile/` 不会被打进安装包。请在用户数据目录或启动目录放置 `.env`。
 
-```bash
-playwright install chromium
-```
+打包命令会设置 `PLAYWRIGHT_BROWSERS_PATH=0`，把 Playwright Chromium 一起放进桌面应用依赖里。若 `AI_RPA_BROWSER_EXECUTABLE` 留空，应用会使用随包 Chromium；若配置了浏览器路径，则优先使用指定的系统 Chrome。
 
 Windows 的用户配置目录是：
 
