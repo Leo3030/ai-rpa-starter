@@ -64,6 +64,7 @@ const state = {
   busy: false,
   runAbortController: null,
   activeRunId: 0,
+  logSteps: [],
   lastRepairQuestion: "",
   mimoErrorReported: false,
   agentImage: null,
@@ -717,12 +718,14 @@ async function runWorkflowStream(payload, signal, runId) {
 }
 
 function clearLogs() {
+  state.logSteps = [];
   $("logsTab").innerHTML = "";
   const floatingBody = $("floatingLogBody");
   if (floatingBody) floatingBody.innerHTML = "";
 }
 
 function renderLogs(result) {
+  state.logSteps = [];
   const root = $("logsTab");
   root.innerHTML = "";
   const floatingBody = $("floatingLogBody");
@@ -738,6 +741,7 @@ function renderLogs(result) {
 }
 
 function appendLogStep(step, keepDock = true) {
+  state.logSteps.push(step);
   const bottom = $("logsTab");
   const floatingBody = $("floatingLogBody");
   const bottomItem = createLogItem(step);
@@ -755,10 +759,57 @@ function appendLogStep(step, keepDock = true) {
 function createLogItem(step) {
   const item = document.createElement("div");
   item.className = `log-item ${step.status || ""}`;
+  item.dataset.copyText = formatLogStep(step);
   item.innerHTML = `
     <div class="log-title">${escapeHtml(step.title || step.node_id || "运行日志")}</div>
     <div class="log-detail">${escapeHtml(step.detail || "")}</div>`;
   return item;
+}
+
+function formatLogStep(step) {
+  const status = step.status ? `[${step.status}] ` : "";
+  const title = step.title || step.node_id || "运行日志";
+  const id = step.node_id && step.node_id !== title ? ` (${step.node_id})` : "";
+  const detail = step.detail ? `\n${step.detail}` : "";
+  return `${status}${title}${id}${detail}`;
+}
+
+function currentLogText() {
+  if (state.logSteps.length) return state.logSteps.map(formatLogStep).join("\n\n");
+  return Array.from(document.querySelectorAll("#logsTab .log-item"))
+    .map((item) => item.dataset.copyText || item.textContent.trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+async function copyLogs() {
+  const text = currentLogText();
+  if (!text) {
+    setStatus("暂无日志可复制");
+    return;
+  }
+  try {
+    await copyText(text);
+    setStatus("日志已复制");
+  } catch (error) {
+    setStatus(`日志复制失败：${error.message || "请手动选择复制"}`);
+  }
 }
 
 function handleSseBlock(block, runId) {
@@ -945,7 +996,15 @@ function setupFloatingLogPanel() {
   const panel = $("floatingLog");
   const head = $("floatingLogHead");
   const toggle = $("logMinimizeBtn");
+  const copyButton = $("copyFloatingLogsBtn");
   if (!panel || !head || !toggle) return;
+
+  if (copyButton) {
+    copyButton.onclick = (event) => {
+      event.stopPropagation();
+      copyLogs();
+    };
+  }
 
   toggle.onclick = (event) => {
     event.stopPropagation();
@@ -957,7 +1016,7 @@ function setupFloatingLogPanel() {
   let offsetX = 0;
   let offsetY = 0;
   head.addEventListener("pointerdown", (event) => {
-    if (event.target === toggle) return;
+    if (event.target.closest("button")) return;
     dragging = true;
     const rect = panel.getBoundingClientRect();
     offsetX = event.clientX - rect.left;
@@ -1053,6 +1112,7 @@ function init() {
   $("dataBtn").onclick = () => setStatus("数据抓取入口已保留，后续会生成抽取节点");
   $("browserBtn").onclick = () => runWorkflow();
   $("debugBtn").onclick = validateWorkflow;
+  $("copyLogsBtn").onclick = copyLogs;
   for (const button of document.querySelectorAll(".dock-tab")) {
     button.onclick = () => activateDockTab(button.dataset.tab);
   }

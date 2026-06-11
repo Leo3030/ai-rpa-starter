@@ -87,6 +87,18 @@ class WebAppTest(unittest.TestCase):
         self.assertIn('if (step.status === "fail") maybeReportMimoError(step.detail || "")', content)
         self.assertNotIn('return /mimo/i.test(text)', content)
 
+    def test_frontend_can_copy_logs(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        app_js = root / "static" / "app.js"
+        app_html = root / "static" / "app.html"
+        content = app_js.read_text(encoding="utf-8")
+        html = app_html.read_text(encoding="utf-8")
+        self.assertIn('id="copyLogsBtn"', html)
+        self.assertIn('id="copyFloatingLogsBtn"', html)
+        self.assertIn("async function copyLogs()", content)
+        self.assertIn("navigator.clipboard?.writeText", content)
+        self.assertIn("state.logSteps.map(formatLogStep)", content)
+
     def test_settings_api_exposes_mimo_error_flag(self) -> None:
         web_app_py = Path(__file__).resolve().parents[1] / "src" / "ai_rpa" / "web_app.py"
         content = web_app_py.read_text(encoding="utf-8")

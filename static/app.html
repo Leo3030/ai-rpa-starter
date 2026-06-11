@@ -64,6 +64,7 @@
           <button data-tab="agent" class="dock-tab">Agent 聊天</button>
           <button data-tab="logs" class="dock-tab">运行日志</button>
           <button data-tab="json" class="dock-tab">JSON</button>
+          <button id="copyLogsBtn" class="mini-button log-copy-button" type="button">复制日志</button>
         </div>
         <div id="elementsTab" class="dock-content active">
           <div class="element-toolbar">
@@ -120,7 +121,10 @@
         <strong>Log Info</strong>
         <span id="floatingLogStatus">准备就绪</span>
       </div>
-      <button id="logMinimizeBtn" class="mini-button" type="button">收起</button>
+      <div class="floating-log-actions">
+        <button id="copyFloatingLogsBtn" class="mini-button" type="button">复制</button>
+        <button id="logMinimizeBtn" class="mini-button" type="button">收起</button>
+      </div>
     </div>
     <div id="floatingLogBody" class="floating-log-body"></div>
   </section>

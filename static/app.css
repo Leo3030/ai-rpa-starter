@@ -405,6 +405,10 @@ body {
 
 .dock-content.active { display: block; }
 
+.log-copy-button {
+  margin-left: auto;
+}
+
 .element-row {
   align-items: center;
   border-bottom: 1px solid #edf1f6;
@@ -676,6 +680,7 @@ body {
   line-height: 1.45;
   margin-bottom: 8px;
   padding: 5px 0 5px 10px;
+  user-select: text;
 }
 
 .log-item.pass { border-color: var(--green); }
@@ -722,6 +727,12 @@ body {
   justify-content: space-between;
   padding: 7px 8px 7px 12px;
   user-select: none;
+}
+
+.floating-log-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
 }
 
 .floating-log-head strong {
