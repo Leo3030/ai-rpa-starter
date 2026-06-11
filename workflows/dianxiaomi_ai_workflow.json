@@ -163,6 +163,7 @@
       "title": "循环处理商品",
       "params": {
         "times": 100,
+        "startIndex": 4,
         "pageContext": "page2"
       },
       "disabled": false
@@ -194,11 +195,13 @@
         "scrollBeforeLocateSteps": 16,
         "scrollBeforeLocateDelta": 220,
         "saveAs": "productRemark.raw",
-        "regex": "备注\\s*[:：]\\s*(?P<type>[^/]+)\\s*/\\s*(?P<costPrice>\\d+(?:\\.\\d+)?)\\s*元\\s*/\\s*(?P<weight>\\d+(?:\\.\\d+)?)\\s*克",
+        "regex": "备注\\s*[:：]\\s*(?P<type>[^/，,]+?)\\s*/\\s*(?P<price>(?P<costPrice>\\d+(?:\\.\\d+)?)\\s*元)\\s*/\\s*(?P<weightText>(?P<weight>\\d+(?:\\.\\d+)?)\\s*克)(?:\\s*[,，].*)?",
         "groupSaveAs": {
           "type": "productRemark.type",
           "costPrice": "productRemark.costPrice",
-          "weight": "productRemark.weight"
+          "price": "productRemark.price",
+          "weight": "productRemark.weight",
+          "weightText": "productRemark.weightText"
         },
         "timeoutMs": 15000
       },
@@ -262,14 +265,58 @@
       "disabled": false
     },
     {
-      "id": "ai-category-instructions",
-      "type": "ai.ask",
-      "title": "AI 识别分类页变种主题",
+      "id": "open-color-variant-theme-select",
+      "type": "web.click",
+      "title": "打开颜色分类变种主题下拉框",
       "params": {
-        "saveAs": "ai-category-instructions",
-        "screenshot": true,
+        "target": "颜色分类右侧下拉框",
+        "selector": "table.bg-white tbody td[data-row-index=\"0\"][data-column-index=\"1\"] .ant-select-selector, tbody td[data-row-index=\"0\"][data-column-index=\"1\"] .ant-select-selector",
         "pageContext": "pageCategory",
-        "prompt": "当前是店小秘编辑分类页。请识别两个变种主题右侧的下拉菜单位置，并确认应该将颜色分类选择为 Color、尺码选择为 Size。不要选择页面顶部类目下拉。只返回 JSON。"
+        "timeoutMs": 15000,
+        "waitAfterClickVisible": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option, [role=option]:visible",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-color-variant-theme",
+      "type": "web.click",
+      "title": "选择颜色分类为 Color",
+      "params": {
+        "target": "Color",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has(.ant-select-item-option-content:text-is(\"Color\")), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title=\"Color\"], [role=option]:visible[title=\"Color\"]",
+        "pageContext": "pageCategory",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "open-size-variant-theme-select",
+      "type": "web.click",
+      "title": "打开尺码变种主题下拉框",
+      "params": {
+        "target": "尺码右侧下拉框",
+        "selector": "table.bg-white tbody td[data-row-index=\"1\"][data-column-index=\"1\"] .ant-select-selector, tbody td[data-row-index=\"1\"][data-column-index=\"1\"] .ant-select-selector",
+        "pageContext": "pageCategory",
+        "timeoutMs": 15000,
+        "waitAfterClickVisible": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option, [role=option]:visible",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-size-variant-theme",
+      "type": "web.click",
+      "title": "选择尺码为 Size",
+      "params": {
+        "target": "Size",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has(.ant-select-item-option-content:text-is(\"Size\")), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option[title=\"Size\"], [role=option]:visible[title=\"Size\"]",
+        "pageContext": "pageCategory",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
       },
       "disabled": false
     },
@@ -278,9 +325,11 @@
       "type": "web.click",
       "title": "点击保存并下一步",
       "params": {
-        "target": "保存并下一步",
-        "selector": "button:has-text(\"保存，下一步\"), button:has-text(\"保存并下一步\"), button:has-text(\"下一步\")",
-        "pageContext": "pageCategory"
+        "target": "保存，下一步",
+        "selector": "button.ant-btn-primary:visible:has(span:text-is(\"保存，下一步\")), button.ant-btn-primary:visible:has-text(\"保存，下一步\")",
+        "pageContext": "pageCategory",
+        "timeoutMs": 15000,
+        "skipAfterClickWaits": true
       },
       "disabled": false
     },
@@ -347,6 +396,70 @@
         "pageContext": "page3",
         "value": "${ai-title-translation.title}",
         "rejectCjk": true,
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-source-url-add-first",
+      "type": "web.click",
+      "title": "店小秘信息来源 URL 点击添加 1",
+      "params": {
+        "target": "来源 URL 添加按钮",
+        "selector": ".source-inp-group:has(input[name=\"sourceUrl\"]) i.iconfont.icon_add[title=\"添加\"], .source-inp-group:has(input[placeholder*=\"供货渠道URL\"]) i.iconfont.icon_add[title=\"添加\"], i.iconfont.icon_add[title=\"添加\"]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "wait-after-source-url-add-first",
+      "type": "flow.wait",
+      "title": "等待来源 URL 新增行响应",
+      "params": {
+        "seconds": 0.5,
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-source-url-add-second",
+      "type": "web.click",
+      "title": "店小秘信息来源 URL 点击添加 2",
+      "params": {
+        "target": "来源 URL 添加按钮",
+        "selector": ".source-inp-group:has(input[name=\"sourceUrl\"]) i.iconfont.icon_add[title=\"添加\"], .source-inp-group:has(input[placeholder*=\"供货渠道URL\"]) i.iconfont.icon_add[title=\"添加\"], i.iconfont.icon_add[title=\"添加\"]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-source-url-remark-second",
+      "type": "web.input",
+      "title": "店小秘信息第 2 行输入完整备注",
+      "params": {
+        "target": "来源 URL 第 2 行备注",
+        "selector": "input#form_item_sourceList_1_path[name=\"sourceUrl\"], .source-inp-group:has(.prefix:text-is(\"2\")) input[name=\"sourceUrl\"], :nth-match(.source-inp-group input[name=\"sourceUrl\"], 2)",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "value": "${productRemark.raw}",
+        "commitInput": true,
+        "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-source-url-remark-third",
+      "type": "web.input",
+      "title": "店小秘信息第 3 行输入完整备注",
+      "params": {
+        "target": "来源 URL 第 3 行备注",
+        "selector": "input#form_item_sourceList_2_path[name=\"sourceUrl\"], .source-inp-group:has(.prefix:text-is(\"3\")) input[name=\"sourceUrl\"], :nth-match(.source-inp-group input[name=\"sourceUrl\"], 3)",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "value": "${productRemark.raw}",
         "commitInput": true,
         "verifyInputValue": true
       },

@@ -209,16 +209,18 @@ class PlaywrightWorkflowExecutor:
                         continue
                     if node.type == "flow.loop":
                         times = int(float(node.params.get("times", 1)))
+                        start_index = int(float(node.params.get("startIndex", 1)))
                         if times <= 0:
                             await self.record_step(steps, passed(node, "loop skipped"))
                             index = find_end_loop(workflow.nodes, index) + 1
                             continue
                         if not loop_stack or loop_stack[-1]["start"] != index:
-                            loop_stack.append({"id": node.id, "start": index, "remaining": times, "times": times})
+                            loop_stack.append({"id": node.id, "start": index, "remaining": times, "times": times, "startIndex": start_index})
                         current_loop = loop_stack[-1]
                         iteration = int(current_loop["times"]) - int(current_loop["remaining"]) + 1
-                        self.set_loop_variables(variables, str(current_loop["id"]), iteration, int(current_loop["times"]))
-                        await self.record_step(steps, passed(node, f"loop iteration {iteration}/{current_loop['times']}"))
+                        item_index = int(current_loop.get("startIndex", 1)) + iteration - 1
+                        self.set_loop_variables(variables, str(current_loop["id"]), item_index, int(current_loop["times"]))
+                        await self.record_step(steps, passed(node, f"loop iteration {iteration}/{current_loop['times']} (item {item_index})"))
                         index += 1
                         continue
                     if node.type == "flow.end_loop":
@@ -360,16 +362,18 @@ class PlaywrightWorkflowExecutor:
                 continue
             if node.type == "flow.loop":
                 times = int(float(node.params.get("times", 1)))
+                start_index = int(float(node.params.get("startIndex", 1)))
                 if times <= 0:
                     await self.record_step(steps, passed(node, "loop skipped"))
                     index = find_end_loop(workflow.nodes, index) + 1
                     continue
                 if not loop_stack or loop_stack[-1]["start"] != index:
-                    loop_stack.append({"id": node.id, "start": index, "remaining": times, "times": times})
+                    loop_stack.append({"id": node.id, "start": index, "remaining": times, "times": times, "startIndex": start_index})
                 current_loop = loop_stack[-1]
                 iteration = int(current_loop["times"]) - int(current_loop["remaining"]) + 1
-                self.set_loop_variables(variables, str(current_loop["id"]), iteration, int(current_loop["times"]))
-                await self.record_step(steps, passed(node, f"loop iteration {iteration}/{current_loop['times']}"))
+                item_index = int(current_loop.get("startIndex", 1)) + iteration - 1
+                self.set_loop_variables(variables, str(current_loop["id"]), item_index, int(current_loop["times"]))
+                await self.record_step(steps, passed(node, f"loop iteration {iteration}/{current_loop['times']} (item {item_index})"))
                 index += 1
                 continue
             if node.type == "flow.end_loop":
@@ -557,6 +561,33 @@ class PlaywrightWorkflowExecutor:
             }""",
             timeout=1500,
         )
+        await page.wait_for_timeout(150)
+
+    async def click_with_offset(self, page: Any, locator: Any, offset_x: float, offset_y: float, origin: str = "center") -> None:
+        point = await locator.evaluate(
+            """(element, payload) => {
+              const rect = element.getBoundingClientRect();
+              const origin = String(payload.origin || 'center');
+              let x = rect.left;
+              let y = rect.top;
+              if (origin === 'center') {
+                x += rect.width / 2;
+                y += rect.height / 2;
+              } else if (origin === 'right-center') {
+                x += rect.width;
+                y += rect.height / 2;
+              }
+              return {
+                x: x + Number(payload.offsetX || 0),
+                y: y + Number(payload.offsetY || 0),
+                width: rect.width,
+                height: rect.height
+              };
+            }""",
+            {"offsetX": offset_x, "offsetY": offset_y, "origin": origin},
+            timeout=1500,
+        )
+        await page.mouse.click(float(point["x"]), float(point["y"]))
         await page.wait_for_timeout(150)
 
     async def scroll_before_locate(self, page: Any, node: WorkflowNode, target_selector: str) -> None:
@@ -778,6 +809,14 @@ class PlaywrightWorkflowExecutor:
                     pressed_before_click = True
                 if pressed_before_click and bool(node.params.get("skipClickAfterPress", False)):
                     pass
+                elif "clickOffsetX" in node.params or "clickOffsetY" in node.params:
+                    await self.click_with_offset(
+                        page,
+                        locator,
+                        float(node.params.get("clickOffsetX", 0)),
+                        float(node.params.get("clickOffsetY", 0)),
+                        str(node.params.get("clickOffsetOrigin") or "center"),
+                    )
                 elif bool(node.params.get("noScroll", False)):
                     await self.click_without_scroll(page, locator)
                 else:
@@ -807,6 +846,16 @@ class PlaywrightWorkflowExecutor:
                             should_press = False
                     if should_press:
                         await page.keyboard.press(press_after_click)
+                if next_url:
+                    await page.wait_for_timeout(1200)
+                    await page.goto(resolve_url(resolve_runtime_value(str(next_url), variables)), wait_until="domcontentloaded")
+                    await self.wait_page_ready(page)
+                    self.arm_modal_guard()
+                elif page.url != before_url:
+                    await self.wait_page_ready(page)
+                if bool(node.params.get("skipAfterClickWaits", False)):
+                    tab_detail = f"; switched to new tab {page.url}" if popup else ""
+                    return passed(node, f"clicked {node.params.get('target', node.title)}{tab_detail}")
                 wait_hidden = resolve_runtime_value(str(node.params.get("waitAfterClickHidden") or "").strip(), variables)
                 if wait_hidden:
                     await page.locator(wait_hidden).first.wait_for(
@@ -819,13 +868,6 @@ class PlaywrightWorkflowExecutor:
                         state="visible",
                         timeout=int(float(node.params.get("waitAfterClickTimeoutMs", node.params.get("timeoutMs", 10000)))),
                     )
-                if next_url:
-                    await page.wait_for_timeout(1200)
-                    await page.goto(resolve_url(resolve_runtime_value(str(next_url), variables)), wait_until="domcontentloaded")
-                    await self.wait_page_ready(page)
-                    self.arm_modal_guard()
-                elif page.url != before_url:
-                    await self.wait_page_ready(page)
                 tab_detail = f"; switched to new tab {page.url}" if popup else ""
                 return passed(node, f"clicked {node.params.get('target', node.title)}{tab_detail}")
             if node.type == "web.wait_for":

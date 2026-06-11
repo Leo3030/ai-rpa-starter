@@ -688,19 +688,23 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertEqual(freight_template_label_for_weight("400"), "351-450g")
 
     def test_extract_regex_groups_for_product_remark(self) -> None:
-        remark = " 备注:连衣裙均码/80元/400克"
+        remark = " 备注:连衣裙均码/59元/450克，云朵家"
         extracted = extract_regex_groups(
             remark,
-            r"备注\s*[:：]\s*(?P<type>[^/]+)\s*/\s*(?P<costPrice>\d+(?:\.\d+)?)\s*元\s*/\s*(?P<weight>\d+(?:\.\d+)?)\s*克",
+            r"备注\s*[:：]\s*(?P<type>[^/，,]+?)\s*/\s*(?P<price>(?P<costPrice>\d+(?:\.\d+)?)\s*元)\s*/\s*(?P<weightText>(?P<weight>\d+(?:\.\d+)?)\s*克)(?:\s*[,，].*)?",
             {
                 "type": "productRemark.type",
                 "costPrice": "productRemark.costPrice",
+                "price": "productRemark.price",
                 "weight": "productRemark.weight",
+                "weightText": "productRemark.weightText",
             },
         )
         self.assertEqual(extracted["productRemark.type"], "连衣裙均码")
-        self.assertEqual(extracted["productRemark.costPrice"], "80")
-        self.assertEqual(extracted["productRemark.weight"], "400")
+        self.assertEqual(extracted["productRemark.costPrice"], "59")
+        self.assertEqual(extracted["productRemark.price"], "59元")
+        self.assertEqual(extracted["productRemark.weight"], "450")
+        self.assertEqual(extracted["productRemark.weightText"], "450克")
 
     def test_ai_title_result_normalization(self) -> None:
         node = WorkflowNode(
@@ -945,7 +949,9 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertEqual(remark_node.params["saveAs"], "productRemark.raw")
         self.assertEqual(remark_node.params["groupSaveAs"]["type"], "productRemark.type")
         self.assertEqual(remark_node.params["groupSaveAs"]["costPrice"], "productRemark.costPrice")
+        self.assertEqual(remark_node.params["groupSaveAs"]["price"], "productRemark.price")
         self.assertEqual(remark_node.params["groupSaveAs"]["weight"], "productRemark.weight")
+        self.assertEqual(remark_node.params["groupSaveAs"]["weightText"], "productRemark.weightText")
         click_first_edit = workflow.nodes[node_ids.index("click-first-edit")]
         self.assertIn(":nth-match", click_first_edit.params["selector"])
         self.assertIn("${loop-products.index}", click_first_edit.params["selector"])
