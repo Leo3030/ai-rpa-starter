@@ -74,17 +74,17 @@ class WebAppTest(unittest.TestCase):
             'button:has-text("登录")',
         )
 
-    def test_frontend_contains_mimo_admin_alert_hook(self) -> None:
+    def test_frontend_reports_mimo_error_without_blocking_overlay(self) -> None:
         app_js = Path(__file__).resolve().parents[1] / "static" / "app.js"
         app_html = Path(__file__).resolve().parents[1] / "static" / "app.html"
         content = app_js.read_text(encoding="utf-8")
         html = app_html.read_text(encoding="utf-8")
-        self.assertIn("mimoBlockingOverlay", html)
-        self.assertIn('overlay.classList.remove("hidden")', content)
-        self.assertIn('document.body.classList.add("is-blocked")', content)
+        self.assertNotIn("mimoBlockingOverlay", html)
+        self.assertNotIn('overlay.classList.remove("hidden")', content)
+        self.assertNotIn('document.body.classList.add("is-blocked")', content)
         self.assertIn("function isMimoError(detail)", content)
-        self.assertIn("maybeShowMimoAdminAlert(settings.mimoError || \"\")", content)
-        self.assertIn('if (step.status === "fail") maybeShowMimoAdminAlert(step.detail || "")', content)
+        self.assertIn("maybeReportMimoError(settings.mimoError || \"\")", content)
+        self.assertIn('if (step.status === "fail") maybeReportMimoError(step.detail || "")', content)
         self.assertNotIn('return /mimo/i.test(text)', content)
 
     def test_settings_api_exposes_mimo_error_flag(self) -> None:

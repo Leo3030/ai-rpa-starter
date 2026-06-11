@@ -93,6 +93,9 @@ class AiRpaRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/health":
+            self.send_json({"status": "ok"})
+            return
         if parsed.path == "/":
             self.send_static_file(STATIC_DIR / "app.html")
             return

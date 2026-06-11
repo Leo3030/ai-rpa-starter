@@ -65,7 +65,7 @@ const state = {
   runAbortController: null,
   activeRunId: 0,
   lastRepairQuestion: "",
-  mimoErrorAlertShown: false,
+  mimoErrorReported: false,
   agentImage: null,
   jsonDirty: false,
   propertyDirty: false
@@ -90,13 +90,10 @@ function isMimoError(detail) {
   );
 }
 
-function maybeShowMimoAdminAlert(detail) {
-  if (!isMimoError(detail) || state.mimoErrorAlertShown) return;
-  state.mimoErrorAlertShown = true;
-  const overlay = $("mimoBlockingOverlay");
-  if (overlay) overlay.classList.remove("hidden");
-  document.body.classList.add("is-blocked");
-  setBusy(true);
+function maybeReportMimoError(detail) {
+  if (!isMimoError(detail) || state.mimoErrorReported) return;
+  state.mimoErrorReported = true;
+  setStatus("Mimo 暂时不可用，已保留当前界面");
 }
 
 function setBusy(value) {
@@ -341,7 +338,7 @@ async function loadWorkflow(name) {
 
 async function loadSettings() {
   const settings = await api("/api/settings");
-  maybeShowMimoAdminAlert(settings.mimoError || "");
+  maybeReportMimoError(settings.mimoError || "");
   if (settings.mimoHealthy) {
     setStatus("Mimo 已连接");
   } else if (settings.mimoConfigured) {
@@ -523,7 +520,7 @@ async function handleAgentText() {
   clearAgentImage();
   addAgentMessage("user", image ? `${text}\n[图片附件：${image.name}]` : text);
   setStatus("Mimo 正在判断 workflow 修改");
-  state.mimoErrorAlertShown = false;
+  state.mimoErrorReported = false;
   try {
     if (!flushPendingEdits({ silent: false })) return;
     const result = await api("/api/agent", {
@@ -545,11 +542,11 @@ async function handleAgentText() {
     const source = result.source === "mimo" ? "Mimo" : "本地规则";
     const errorNote = result.modelError ? `（模型失败：${result.modelError}）` : "";
     addAgentMessage("agent", `${source}：${result.reply}${errorNote}`);
-    maybeShowMimoAdminAlert(result.modelError);
+    maybeReportMimoError(result.modelError);
     setStatus(`${source} 已应用：${result.action}`);
   } catch (error) {
     addAgentMessage("agent", `Agent 执行失败：${error.error || error.message || "未知错误"}`);
-    maybeShowMimoAdminAlert(error.error || error.message || "");
+    maybeReportMimoError(error.error || error.message || "");
     setStatus(error.error || "Agent 执行失败");
   }
 }
@@ -652,7 +649,7 @@ async function runWorkflow() {
   }
   const runId = Date.now();
   state.activeRunId = runId;
-  state.mimoErrorAlertShown = false;
+  state.mimoErrorReported = false;
   const controller = new AbortController();
   state.runAbortController = controller;
   setBusy(true);
@@ -751,7 +748,7 @@ function appendLogStep(step, keepDock = true) {
     floatingBody.scrollTop = floatingBody.scrollHeight;
   }
   if (keepDock) activateDockTab("logs");
-  if (step.status === "fail") maybeShowMimoAdminAlert(step.detail || "");
+  if (step.status === "fail") maybeReportMimoError(step.detail || "");
   maybeSurfaceRepairQuestion(step);
 }
 
@@ -1061,9 +1058,9 @@ function init() {
   }
   addAgentMessage("agent", "我会把你的指令交给 Mimo 判断，并把结果应用为具体 workflow 节点。");
   renderCommands();
-  state.mimoErrorAlertShown = false;
+  state.mimoErrorReported = false;
   loadSettings().catch((error) => {
-    maybeShowMimoAdminAlert(error.error || error.message || "");
+    maybeReportMimoError(error.error || error.message || "");
     setStatus(error.error || "设置加载失败");
   });
   loadWorkflows().catch((error) => setStatus(error.error || "workflow 加载失败"));

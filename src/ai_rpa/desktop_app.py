@@ -5,8 +5,9 @@ import shutil
 import socket
 import threading
 import time
+from http.client import HTTPConnection
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.parse import urlparse
 
 from .paths import APP_NAME, bundled_root, bundled_workflow_dir, user_data_root
 
@@ -38,15 +39,26 @@ def prepare_desktop_data_dir() -> Path:
 
 
 def wait_for_server(url: str, timeout: float = 15.0) -> None:
+    parsed = urlparse(url)
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
     deadline = time.monotonic() + timeout
     last_error: Exception | None = None
     while time.monotonic() < deadline:
+        connection: HTTPConnection | None = None
         try:
-            with urlopen(url, timeout=1.0) as response:
-                if response.status < 500:
-                    return
+            connection = HTTPConnection(parsed.hostname or "127.0.0.1", parsed.port or 80, timeout=1.0)
+            connection.request("GET", path)
+            response = connection.getresponse()
+            response.read()
+            if response.status < 500:
+                return
         except Exception as error:
             last_error = error
+        finally:
+            if connection is not None:
+                connection.close()
         time.sleep(0.15)
     raise RuntimeError(f"desktop server did not start: {last_error}")
 
@@ -64,7 +76,7 @@ def main() -> None:
     url = f"http://127.0.0.1:{port}"
     thread = threading.Thread(target=run_app, args=("127.0.0.1", port), daemon=True)
     thread.start()
-    wait_for_server(url)
+    wait_for_server(f"{url}/api/health")
     webview.create_window(APP_NAME, url, width=1440, height=920, min_size=(1100, 720))
     webview.start()
 

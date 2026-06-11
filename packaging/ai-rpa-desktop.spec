@@ -1,6 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 
 
@@ -37,7 +39,7 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=["webview"],
-    hookspath=[],
+    hookspath=[str(SPEC_DIR / "hooks")],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
@@ -80,3 +82,35 @@ if sys.platform == "darwin":
         icon=None,
         bundle_identifier="com.ai-rpa-starter.desktop",
     )
+
+    try:
+        import playwright
+        from PyInstaller.config import CONF
+
+        browsers_src = Path(playwright.__file__).resolve().parent / "driver" / "package" / ".local-browsers"
+        dist_path = Path(CONF["distpath"]).resolve()
+        browser_targets = [
+            dist_path / "AI RPA Starter" / "_internal" / "playwright" / "driver" / "package" / ".local-browsers",
+            dist_path
+            / "AI RPA Starter.app"
+            / "Contents"
+            / "Resources"
+            / "playwright"
+            / "driver"
+            / "package"
+            / ".local-browsers",
+        ]
+
+        if browsers_src.exists():
+            for target in browser_targets:
+                if target.exists():
+                    shutil.rmtree(target)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(browsers_src, target, symlinks=True)
+
+            subprocess.run(
+                ["codesign", "--force", "--deep", "-s", "-", str(dist_path / "AI RPA Starter.app")],
+                check=True,
+            )
+    except Exception as exc:
+        raise SystemExit(f"Failed to copy bundled Playwright browsers: {exc}") from exc
