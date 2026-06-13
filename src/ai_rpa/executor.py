@@ -776,8 +776,14 @@ class PlaywrightWorkflowExecutor:
                     raise RuntimeError(f"输入值包含中文/CJK字符，已阻止写入：{node.params.get('target', node.title)}={value}")
                 locator = await self.locator_for(page, node)
                 if bool(node.params.get("richTextKeepImagesOnly", False)):
-                    await self.clean_rich_text_keep_images(locator)
-                    return passed(node, f"cleaned {node.params.get('target', node.title)}; kept images")
+                    prefix_text = ""
+                    prefix_type_value = str(node.params.get("richTextPrefixFromProductType") or "").strip()
+                    if prefix_type_value:
+                        product_type = resolve_runtime_value(prefix_type_value, variables)
+                        prefix_text = pc_description_prefix_for_product_type(product_type)
+                    await self.clean_rich_text_keep_images(locator, prefix_text=prefix_text)
+                    prefix_detail = "; inserted size prompt" if prefix_text else ""
+                    return passed(node, f"cleaned {node.params.get('target', node.title)}; kept images{prefix_detail}")
                 await locator.fill(value)
                 if bool(node.params.get("commitInput", False)):
                     await self.commit_input_value(locator, value)
@@ -1402,9 +1408,9 @@ class PlaywrightWorkflowExecutor:
             timeout=1500,
         )
 
-    async def clean_rich_text_keep_images(self, locator: Any) -> None:
+    async def clean_rich_text_keep_images(self, locator: Any, prefix_text: str = "") -> None:
         await locator.evaluate(
-            """async element => {
+            """async (element, prefixText) => {
               const textarea = element instanceof HTMLTextAreaElement
                 ? element
                 : element.querySelector('textarea[id^="ckeditor"]') || element;
@@ -1416,7 +1422,16 @@ class PlaywrightWorkflowExecutor:
               const holder = document.createElement('div');
               holder.innerHTML = currentHtml;
               const images = Array.from(holder.querySelectorAll('img')).map(img => img.outerHTML);
-              const nextHtml = images.map(markup => `<p>${markup}</p>`).join('');
+              const escapeHtml = value => String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+              const prefixHtml = String(prefixText || '').trim()
+                ? `<pre style="white-space: pre-wrap; font-family: inherit;">${escapeHtml(prefixText)}</pre>`
+                : '';
+              const nextHtml = prefixHtml + images.map(markup => `<p>${markup}</p>`).join('');
               if (instance && typeof instance.setData === 'function') {
                 await new Promise(resolve => {
                   let resolved = false;
@@ -1454,6 +1469,7 @@ class PlaywrightWorkflowExecutor:
               textarea.dispatchEvent(new Event('change', { bubbles: true }));
               textarea.blur();
             }""",
+            prefix_text,
             timeout=2500,
         )
 
@@ -1634,6 +1650,73 @@ def freight_template_label_for_weight(weight_value: Any) -> str:
     lower = bucket * Decimal("100") + Decimal("51")
     upper = lower + Decimal("99")
     return f"{format_decimal(lower)}-{format_decimal(upper)}g"
+
+
+PC_DESCRIPTION_PROMPT = """Prompt:
+1.Due to the lighting and display reasons, little color difference is normal, please forgive
+
+2.Due to different measurement methods, there will be 1-3 cm error is a normal phenomenon
+
+3.Our size is asia size normally smaller than US size
+
+4.Pls take a minute to check size chart, if you are not sure about size details
+
+5.1cm = 0.39 inches 1inch=2.54cm
+
+6.Unit: cm"""
+
+PC_DESCRIPTION_WARM_PROMPT = PC_DESCRIPTION_PROMPT.replace("Prompt:", "Warm Prompt:", 1)
+
+PC_DESCRIPTION_PREFIX_BY_TYPE = {
+    "连衣裙均码": """Size Chart
+One Size       Length:cm      Bust:cm      Waist:cm      Sleeve:cm      Shoulder:cm
+""" + PC_DESCRIPTION_PROMPT,
+    "连衣裙多尺码": """Size Chart
+
+S       Length:cm     Bust:cm     Waist:cm  Sleeve:cm       Shoulder:cm
+M     Length:cm      Bust:cm    Waist:cm    Sleeve:cm       Shoulder:cm
+L       Length:cm      Bust:cm    Waist:cm      Sleeve:cm      Shoulder:cm
+XL    Length:cm      Bust:cm      Waist:cm     Sleeve:cm       Shoulder:cm
+XXL  Length:cm      Bust:cm     Waist:cm      Sleeve:cm      Shoulder:cm
+""" + PC_DESCRIPTION_PROMPT,
+    "上衣均码": """Size Chart
+One Size      Length:cm      Bust:cm   
+""" + PC_DESCRIPTION_PROMPT,
+    "半身裙均码": """Size Chart
+
+One Size       Length:cm      Waist:cm
+
+""" + PC_DESCRIPTION_WARM_PROMPT,
+    "套装均码": """TOP
+ Length:cm     Bust:cm     Sleeve:cm      Shoulder:cm
+Bottom
+ Length:cm     Waist:cm    Hip:cm
+
+""" + PC_DESCRIPTION_PROMPT,
+    "套装多尺码": """TOP
+S       Length:cm     Bust:cm     Sleeve:cm       Shoulder:cm
+M     Length:cm      Bust:cm    Sleeve:cm        Shoulder:cm
+L       Length:cm      Bust:cm    Sleeve:cm        Shoulder:cm
+XL    Length:cm      Bust:cm      Sleeve:cm      Shoulder:cm
+XXL  Length:cm      Bust:cm     Sleeve:cm        Shoulder:cm
+Bottom
+S       Length:cm     Waist:cm    Hip:cm
+M     Length:cm      Waist:cm     Hip:cm
+L       Length:cm      Waist:cm     Hip:cm
+XL     Length:cm      Waist:cm     Hip:cm
+XXL   Length:cm      Waist:cm      Hip:cm
+""" + PC_DESCRIPTION_PROMPT,
+}
+
+
+def pc_description_prefix_for_product_type(product_type: str) -> str:
+    normalized = "".join(str(product_type or "").split())
+    if not normalized:
+        return ""
+    for key, value in PC_DESCRIPTION_PREFIX_BY_TYPE.items():
+        if key in normalized:
+            return value
+    return ""
 
 
 def resolve_numeric_expression(expression: str, variables: dict[str, Any]) -> str:

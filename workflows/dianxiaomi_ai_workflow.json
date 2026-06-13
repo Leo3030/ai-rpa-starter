@@ -163,7 +163,6 @@
       "title": "循环处理商品",
       "params": {
         "times": 100,
-        "startIndex": 4,
         "pageContext": "page2"
       },
       "disabled": false
@@ -875,6 +874,179 @@
       "disabled": false
     },
     {
+      "id": "input-pattern-type-embroidered",
+      "type": "web.input",
+      "title": "图案类型输入 Embroidered",
+      "params": {
+        "target": "图案类型(Pattern Type)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '图案类型') or contains(normalize-space(.), 'Pattern Type')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[not(@type='hidden')]",
+        "value": "Embroidered",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-pattern-type-embroidered",
+      "type": "web.click",
+      "title": "图案类型选择 Embroidered",
+      "params": {
+        "target": "Embroidered",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Embroidered\"), [role=option]:visible:has-text(\"Embroidered\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-decoration-lace",
+      "type": "web.input",
+      "title": "装饰输入 Lace",
+      "params": {
+        "target": "装饰(Decoration)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '装饰') or contains(normalize-space(.), 'Decoration')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//input[not(@type='hidden')]",
+        "value": "Lace",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-decoration-lace",
+      "type": "web.click",
+      "title": "装饰选择 Lace",
+      "params": {
+        "target": "Lace",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Lace\"), [role=option]:visible:has-text(\"Lace\")",
+        "pageContext": "page3",
+        "state": "visible",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-dresses-length-dropdown",
+      "type": "web.click",
+      "title": "打开裙长下拉",
+      "params": {
+        "target": "裙长(Dresses Length)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '裙长') or contains(normalize-space(.), 'Dresses Length')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-dresses-length-search-mid-calf",
+      "type": "web.input",
+      "title": "裙长输入 Mid-Calf",
+      "params": {
+        "target": "及小腿肚裙(Mid-Calf)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Mid-Calf",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-dresses-length-mid-calf",
+      "type": "web.click",
+      "title": "裙长选择 Mid-Calf",
+      "params": {
+        "target": "及小腿肚裙(Mid-Calf)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Mid-Calf\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"及小腿肚裙\"), [role=option]:visible:has-text(\"Mid-Calf\"), [role=option]:visible:has-text(\"及小腿肚裙\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-sleeve-style-dropdown",
+      "type": "web.click",
+      "title": "打开袖型下拉",
+      "params": {
+        "target": "袖型(Sleeve Style)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '袖型') or contains(normalize-space(.), 'Sleeve Style')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-sleeve-style-search-spaghetti-strap",
+      "type": "web.input",
+      "title": "袖型输入 Spaghetti Strap",
+      "params": {
+        "target": "吊带(Spaghetti Strap)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Spaghetti Strap",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-sleeve-style-spaghetti-strap",
+      "type": "web.click",
+      "title": "袖型选择 Spaghetti Strap",
+      "params": {
+        "target": "吊带(Spaghetti Strap)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Spaghetti Strap\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"吊带\"), [role=option]:visible:has-text(\"Spaghetti Strap\"), [role=option]:visible:has-text(\"吊带\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-neckline-dropdown",
+      "type": "web.click",
+      "title": "打开领型下拉",
+      "params": {
+        "target": "领型(Neckline)",
+        "selector": "xpath=//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-label ')][contains(normalize-space(.), '领型') or contains(normalize-space(.), 'Neckline')]/following-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-form-item-control ')][1]//*[contains(concat(' ', normalize-space(@class), ' '), ' ant-select-selector ')]",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "input-neckline-search-slash-neck",
+      "type": "web.input",
+      "title": "领型输入 Slash Neck",
+      "params": {
+        "target": "一字领(Slash Neck)",
+        "selector": ".ant-select-open input.ant-select-selection-search-input, .ant-select-open .ant-select-selection-search input",
+        "value": "Slash Neck",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-neckline-slash-neck",
+      "type": "web.click",
+      "title": "领型选择 Slash Neck",
+      "params": {
+        "target": "一字领(Slash Neck)",
+        "selector": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"Slash Neck\"), .ant-select-dropdown:visible:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text(\"一字领\"), [role=option]:visible:has-text(\"Slash Neck\"), [role=option]:visible:has-text(\"一字领\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000,
+        "waitAfterClickHidden": ".ant-select-dropdown:visible:not(.ant-select-dropdown-hidden)",
+        "waitAfterClickTimeoutMs": 5000
+      },
+      "disabled": false
+    },
+    {
       "id": "click-season-dropdown",
       "type": "web.click",
       "title": "打开季节下拉",
@@ -1306,6 +1478,64 @@
       "disabled": false
     },
     {
+      "id": "if-color-options-all-unchecked",
+      "type": "flow.if",
+      "title": "如果颜色选项未勾选任何项",
+      "params": {
+        "selector": ".attr-options:not(:has(.size-tip)):has(.checkbox-group input[type=\"checkbox\"]):not(:has(input[type=\"checkbox\"]:checked)):not(:has(input.checkbox-input.checked)):visible",
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-first-color-option-checkbox",
+      "type": "web.click",
+      "title": "勾选第一个颜色选项",
+      "params": {
+        "target": "第一个颜色选项",
+        "selector": ".attr-options:not(:has(.size-tip)) .checkbox-group label.checkbox-item:first-child input[type=\"checkbox\"], .attr-options:not(:has(.size-tip)) .checkbox-group label.checkbox-item:first-child",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-color-options-all-unchecked",
+      "type": "flow.end_if",
+      "title": "结束颜色选项兜底勾选",
+      "params": {},
+      "disabled": false
+    },
+    {
+      "id": "if-size-options-all-unchecked",
+      "type": "flow.if",
+      "title": "如果尺寸选项未勾选任何项",
+      "params": {
+        "selector": ".attr-options:has(.size-tip):has(.checkbox-group input[type=\"checkbox\"]):not(:has(input[type=\"checkbox\"]:checked)):not(:has(input.checkbox-input.checked)):visible",
+        "pageContext": "page3"
+      },
+      "disabled": false
+    },
+    {
+      "id": "click-one-size-option-checkbox",
+      "type": "web.click",
+      "title": "勾选尺寸 One Size",
+      "params": {
+        "target": "(新) One Size",
+        "selector": ".attr-options:has(.size-tip) label.checkbox-item:has(input[value=\"200003528\"]) input[type=\"checkbox\"], .attr-options:has(.size-tip) label.checkbox-item:has-text(\"One Size\")",
+        "pageContext": "page3",
+        "timeoutMs": 15000
+      },
+      "disabled": false
+    },
+    {
+      "id": "end-if-size-options-all-unchecked",
+      "type": "flow.end_if",
+      "title": "结束尺寸选项兜底勾选",
+      "params": {},
+      "disabled": false
+    },
+    {
       "id": "input-sku-batch-retail-price",
       "type": "web.input",
       "title": "批量填写零售价",
@@ -1414,6 +1644,19 @@
         "timeoutMs": 15000,
         "commitInput": true,
         "verifyInputValue": true
+      },
+      "disabled": false
+    },
+    {
+      "id": "select-sku-origin-country-yes",
+      "type": "web.select",
+      "title": "SKU 表头是否原籍选择 是",
+      "params": {
+        "target": "SKU 表头是否原籍",
+        "selector": "table.myj-table:visible thead tr:first-child th:nth-child(9) select:has(option[value=\"1\"]), table.myj-table:visible thead tr:first-child th:nth-child(10) select:has(option[value=\"1\"]), table.myj-table:visible thead tr:first-child th:has(select option[value=\"1\"]:text-is(\"是\")) select, table.myj-table:visible thead tr:first-child th:has(select option:has-text(\"是\")) select",
+        "value": "1",
+        "pageContext": "page3",
+        "timeoutMs": 15000
       },
       "disabled": false
     },
@@ -1562,92 +1805,8 @@
         "timeoutMs": 15000,
         "value": "",
         "allowEmpty": true,
-        "richTextKeepImagesOnly": true
-      },
-      "disabled": false
-    },
-    {
-      "id": "click-pc-description-reference-template",
-      "type": "web.click",
-      "title": "点击 PC 描述引用模版",
-      "params": {
-        "target": "PC端描述引用模版",
-        "selector": ".ant-form-item:has(label[title=\"PC端描述\"]) .cke a[title=\"引用模板\"], .ant-form-item:has(label[title=\"PC端描述\"]) .cke a[title=\"引用模版\"], .ant-form-item:has(label:has-text(\"PC端描述\")) .cke a[title=\"引用模板\"], .ant-form-item:has(label:has-text(\"PC端描述\")) .cke a[title=\"引用模版\"], #cke_ckeditor30 a[title=\"引用模板\"], #cke_ckeditor30 a[title=\"引用模版\"], a.cke_button__smttemplateprops",
-        "pageContext": "page3",
-        "state": "visible",
-        "timeoutMs": 15000,
-        "opensModal": true
-      },
-      "disabled": false
-    },
-    {
-      "id": "wait-product-info-module-modal",
-      "type": "web.wait_for",
-      "title": "等待选择产品信息模块弹窗",
-      "params": {
-        "target": "选择产品信息模块弹窗",
-        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\"), [role=dialog]:visible:has-text(\"选择产品信息模块\"), .el-dialog:visible:has-text(\"选择产品信息模块\")",
-        "pageContext": "page3",
-        "state": "visible",
-        "timeoutMs": 15000
-      },
-      "disabled": false
-    },
-    {
-      "id": "click-custom-template-tab",
-      "type": "web.click",
-      "title": "点击自定义模版",
-      "params": {
-        "target": "自定义模版",
-        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), .ant-modal:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\"), .el-dialog:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模版\"), .el-dialog:visible:has-text(\"选择产品信息模块\") .ant-tabs-tab:has-text(\"自定义模板\")",
-        "pageContext": "page3",
-        "state": "visible",
-        "timeoutMs": 15000
-      },
-      "disabled": false
-    },
-    {
-      "id": "if-pc-template-type-unchecked",
-      "type": "flow.if",
-      "title": "如果对应类型模版未勾选",
-      "params": {
-        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked)), [role=dialog]:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked)), .el-dialog:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label:not(:has(.ant-checkbox-checked))",
-        "pageContext": "page3"
-      },
-      "disabled": false
-    },
-    {
-      "id": "click-pc-template-type-checkbox",
-      "type": "web.click",
-      "title": "勾选对应类型模版",
-      "params": {
-        "target": "${productRemark.type} 模版复选框",
-        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label, [role=dialog]:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label, .el-dialog:visible:has-text(\"选择产品信息模块\") table tbody tr:has(td:first-child:has-text(\"${productRemark.type}\")) td:last-child label",
-        "pageContext": "page3",
-        "state": "visible",
-        "timeoutMs": 15000
-      },
-      "disabled": false
-    },
-    {
-      "id": "end-if-pc-template-type-unchecked",
-      "type": "flow.end_if",
-      "title": "结束对应类型模版勾选判断",
-      "params": {},
-      "disabled": false
-    },
-    {
-      "id": "click-product-info-module-confirm",
-      "type": "web.click",
-      "title": "确认产品信息模块",
-      "params": {
-        "target": "产品信息模块确定",
-        "selector": ".ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"选择\"), .ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确定\"), .ant-modal:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确 定\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"选择\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确定\"), [role=dialog]:visible:has-text(\"选择产品信息模块\") button.ant-btn-primary:has-text(\"确 定\"), .el-dialog:visible:has-text(\"选择产品信息模块\") button:has-text(\"选择\"), .el-dialog:visible:has-text(\"选择产品信息模块\") button:has-text(\"确定\")",
-        "pageContext": "page3",
-        "state": "visible",
-        "timeoutMs": 15000,
-        "waitAfterClickHidden": ".ant-modal:visible:has-text(\"选择产品信息模块\"), [role=dialog]:visible:has-text(\"选择产品信息模块\"), .el-dialog:visible:has-text(\"选择产品信息模块\")",
-        "waitAfterClickTimeoutMs": 15000
+        "richTextKeepImagesOnly": true,
+        "richTextPrefixFromProductType": "${productRemark.type}"
       },
       "disabled": false
     },

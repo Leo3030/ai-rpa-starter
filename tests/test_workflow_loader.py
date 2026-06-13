@@ -29,6 +29,7 @@ from ai_rpa.executor import (
     normalize_ai_result,
     normalize_ai_title,
     page_context_payload,
+    pc_description_prefix_for_product_type,
     resolve_env_value,
     resolve_numeric_expression,
     resolve_runtime_value,
@@ -706,6 +707,22 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertEqual(extracted["productRemark.weight"], "450")
         self.assertEqual(extracted["productRemark.weightText"], "450克")
 
+    def test_pc_description_prefix_for_product_type(self) -> None:
+        dress_one_size = pc_description_prefix_for_product_type("连衣裙均码")
+        self.assertIn("One Size", dress_one_size)
+        self.assertIn("Length:cm", dress_one_size)
+        dress_multi = pc_description_prefix_for_product_type("连衣裙多尺码")
+        self.assertIn("Size Chart", dress_multi)
+        self.assertIn("XXL", dress_multi)
+        self.assertIn("Prompt:", dress_multi)
+        skirt_one_size = pc_description_prefix_for_product_type(" 半身裙均码 ")
+        self.assertIn("One Size", skirt_one_size)
+        self.assertIn("Warm Prompt:", skirt_one_size)
+        set_multi = pc_description_prefix_for_product_type("套装多尺码")
+        self.assertIn("TOP", set_multi)
+        self.assertIn("Bottom", set_multi)
+        self.assertEqual(pc_description_prefix_for_product_type("未知类型"), "")
+
     def test_ai_title_result_normalization(self) -> None:
         node = WorkflowNode(
             id="ai-title-translation",
@@ -1211,6 +1228,14 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertIn("th:nth-child(8)", workflow.nodes[node_ids.index("input-sku-batch-package-width")].params["selector"])
         self.assertEqual(workflow.nodes[node_ids.index("input-sku-batch-package-height")].params["value"], "4")
         self.assertIn("th:nth-child(8)", workflow.nodes[node_ids.index("input-sku-batch-package-height")].params["selector"])
+        origin_country = workflow.nodes[node_ids.index("select-sku-origin-country-yes")]
+        self.assertEqual(origin_country.type, "web.select")
+        self.assertEqual(origin_country.params["value"], "1")
+        self.assertIn("table.myj-table:visible thead", origin_country.params["selector"])
+        self.assertIn("select:has", origin_country.params["selector"])
+        self.assertNotIn("ant-form-item-label", origin_country.params["selector"])
+        self.assertNotIn("click-origin-country-dropdown", node_ids)
+        self.assertNotIn("select-origin-country-yes", node_ids)
         sku_batch_check = workflow.nodes[node_ids.index("check-sku-batch-inputs-before-fill")]
         self.assertEqual(sku_batch_check.type, "web.wait_for")
         self.assertNotIn("stopAfter", sku_batch_check.params)
@@ -1252,34 +1277,18 @@ class WorkflowLoaderTest(unittest.TestCase):
         clean_pc_description = workflow.nodes[node_ids.index("clean-pc-description-keep-images")]
         self.assertEqual(clean_pc_description.type, "web.input")
         self.assertTrue(clean_pc_description.params["richTextKeepImagesOnly"])
+        self.assertEqual(clean_pc_description.params["richTextPrefixFromProductType"], "${productRemark.type}")
         self.assertTrue(clean_pc_description.params["allowEmpty"])
         self.assertEqual(clean_pc_description.params["state"], "attached")
         self.assertIn("textarea[id^=\"ckeditor\"]", clean_pc_description.params["selector"])
         self.assertIn("textarea#ckeditor30", clean_pc_description.params["selector"])
-        reference_template = workflow.nodes[node_ids.index("click-pc-description-reference-template")]
-        self.assertEqual(reference_template.type, "web.click")
-        self.assertTrue(reference_template.params["opensModal"])
-        self.assertIn("a[title=\"引用模板\"]", reference_template.params["selector"])
-        self.assertIn("a.cke_button__smttemplateprops", reference_template.params["selector"])
-        module_modal = workflow.nodes[node_ids.index("wait-product-info-module-modal")]
-        self.assertEqual(module_modal.type, "web.wait_for")
-        self.assertIn("选择产品信息模块", module_modal.params["selector"])
-        custom_template_tab = workflow.nodes[node_ids.index("click-custom-template-tab")]
-        self.assertEqual(custom_template_tab.type, "web.click")
-        self.assertIn("自定义模", custom_template_tab.params["selector"])
-        template_type_if = workflow.nodes[node_ids.index("if-pc-template-type-unchecked")]
-        self.assertEqual(template_type_if.type, "flow.if")
-        self.assertIn("${productRemark.type}", template_type_if.params["selector"])
-        self.assertIn("td:last-child", template_type_if.params["selector"])
-        self.assertIn("not(:has(.ant-checkbox-checked))", template_type_if.params["selector"])
-        template_type_checkbox = workflow.nodes[node_ids.index("click-pc-template-type-checkbox")]
-        self.assertEqual(template_type_checkbox.type, "web.click")
-        self.assertIn("${productRemark.type}", template_type_checkbox.params["selector"])
-        self.assertIn("td:last-child", template_type_checkbox.params["selector"])
-        product_info_confirm = workflow.nodes[node_ids.index("click-product-info-module-confirm")]
-        self.assertEqual(product_info_confirm.type, "web.click")
-        self.assertIn("选择产品信息模块", product_info_confirm.params["selector"])
-        self.assertIn("button.ant-btn-primary", product_info_confirm.params["selector"])
+        self.assertNotIn("click-pc-description-reference-template", node_ids)
+        self.assertNotIn("wait-product-info-module-modal", node_ids)
+        self.assertNotIn("click-custom-template-tab", node_ids)
+        self.assertNotIn("if-pc-template-type-unchecked", node_ids)
+        self.assertNotIn("click-pc-template-type-checkbox", node_ids)
+        self.assertNotIn("end-if-pc-template-type-unchecked", node_ids)
+        self.assertNotIn("click-product-info-module-confirm", node_ids)
         wireless_none = workflow.nodes[node_ids.index("click-wireless-description-none")]
         self.assertEqual(wireless_none.type, "web.click")
         self.assertIn("不填写无线端描述", wireless_none.params["selector"])
@@ -1425,7 +1434,8 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertLess(node_ids.index("input-sku-batch-weight"), node_ids.index("input-sku-batch-package-length"))
         self.assertLess(node_ids.index("input-sku-batch-package-length"), node_ids.index("input-sku-batch-package-width"))
         self.assertLess(node_ids.index("input-sku-batch-package-width"), node_ids.index("input-sku-batch-package-height"))
-        self.assertLess(node_ids.index("input-sku-batch-package-height"), node_ids.index("check-sku-batch-inputs-before-fill"))
+        self.assertLess(node_ids.index("input-sku-batch-package-height"), node_ids.index("select-sku-origin-country-yes"))
+        self.assertLess(node_ids.index("select-sku-origin-country-yes"), node_ids.index("check-sku-batch-inputs-before-fill"))
         self.assertLess(node_ids.index("check-sku-batch-inputs-before-fill"), node_ids.index("click-sku-batch-fill"))
         self.assertLess(node_ids.index("click-sku-batch-fill"), node_ids.index("click-logistics-attribute-batch"))
         self.assertLess(node_ids.index("click-logistics-attribute-batch"), node_ids.index("wait-logistics-attribute-modal"))
@@ -1434,14 +1444,7 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertLess(node_ids.index("click-common-goods-checkbox"), node_ids.index("end-if-common-goods-unchecked"))
         self.assertLess(node_ids.index("end-if-common-goods-unchecked"), node_ids.index("click-logistics-attribute-confirm"))
         self.assertLess(node_ids.index("click-logistics-attribute-confirm"), node_ids.index("clean-pc-description-keep-images"))
-        self.assertLess(node_ids.index("clean-pc-description-keep-images"), node_ids.index("click-pc-description-reference-template"))
-        self.assertLess(node_ids.index("click-pc-description-reference-template"), node_ids.index("wait-product-info-module-modal"))
-        self.assertLess(node_ids.index("wait-product-info-module-modal"), node_ids.index("click-custom-template-tab"))
-        self.assertLess(node_ids.index("click-custom-template-tab"), node_ids.index("if-pc-template-type-unchecked"))
-        self.assertLess(node_ids.index("if-pc-template-type-unchecked"), node_ids.index("click-pc-template-type-checkbox"))
-        self.assertLess(node_ids.index("click-pc-template-type-checkbox"), node_ids.index("end-if-pc-template-type-unchecked"))
-        self.assertLess(node_ids.index("end-if-pc-template-type-unchecked"), node_ids.index("click-product-info-module-confirm"))
-        self.assertLess(node_ids.index("click-product-info-module-confirm"), node_ids.index("click-wireless-description-none"))
+        self.assertLess(node_ids.index("clean-pc-description-keep-images"), node_ids.index("click-wireless-description-none"))
         self.assertLess(node_ids.index("click-wireless-description-none"), node_ids.index("click-wireless-description-new-editor"))
         self.assertLess(node_ids.index("click-wireless-description-new-editor"), node_ids.index("wait-wireless-new-editor"))
         self.assertLess(node_ids.index("wait-wireless-new-editor"), node_ids.index("click-wireless-generate-from-pc"))
