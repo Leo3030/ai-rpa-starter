@@ -682,7 +682,7 @@ class WorkflowLoaderTest(unittest.TestCase):
 
     def test_numeric_expression_resolution(self) -> None:
         variables = {"productRemark": {"costPrice": "80", "weight": "400"}}
-        self.assertEqual(resolve_numeric_expression("${productRemark.costPrice} * 2", variables), "160")
+        self.assertEqual(resolve_numeric_expression("(${productRemark.costPrice} + (${productRemark.weight} * 0.081 + 19)) * 1.2 / 6.3 / 0.92 / 0.95 * 2", variables), "57.27361882968290290944753188")
         self.assertEqual(resolve_numeric_expression("${productRemark.costPrice} * 1.5", variables), "120")
         self.assertEqual(resolve_numeric_expression("${productRemark.weight} / 1000", variables), "0.4")
         self.assertEqual(freight_template_label_for_weight("300"), "251-350g")
@@ -1191,7 +1191,7 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertIn("一键生成", generate_marketing.params["selector"])
         batch_retail = workflow.nodes[node_ids.index("input-sku-batch-retail-price")]
         self.assertEqual(batch_retail.type, "web.input")
-        self.assertEqual(batch_retail.params["valueExpression"], "${productRemark.costPrice} * 2")
+        self.assertEqual(batch_retail.params["valueExpression"], "(${productRemark.costPrice} + (${productRemark.weight} * 0.081 + 19)) * 1.2 / 6.3 / 0.92 / 0.95 * 2")
         self.assertIn('input[placeholder="零售价"]', batch_retail.params["selector"])
         self.assertIn('[class*="w-70"]', batch_retail.params["selector"])
         self.assertIn("th:nth-child(3)", batch_retail.params["selector"])
@@ -1240,7 +1240,7 @@ class WorkflowLoaderTest(unittest.TestCase):
         self.assertEqual(sku_batch_check.type, "web.wait_for")
         self.assertNotIn("stopAfter", sku_batch_check.params)
         self.assertEqual(len(sku_batch_check.params["inputValues"]), 7)
-        self.assertEqual(sku_batch_check.params["inputValues"][0]["valueExpression"], "${productRemark.costPrice} * 2")
+        self.assertEqual(sku_batch_check.params["inputValues"][0]["valueExpression"], "(${productRemark.costPrice} + (${productRemark.weight} * 0.081 + 19)) * 1.2 / 6.3 / 0.92 / 0.95 * 2")
         self.assertIn("th:nth-child(3)", sku_batch_check.params["inputValues"][0]["selector"])
         self.assertEqual(sku_batch_check.params["inputValues"][1]["valueExpression"], "${productRemark.costPrice} * 1.5")
         self.assertIn("th:nth-child(4)", sku_batch_check.params["inputValues"][1]["selector"])

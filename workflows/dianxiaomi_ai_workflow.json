@@ -1542,7 +1542,7 @@
       "params": {
         "target": "SKU 表头零售价",
         "selector": "table.myj-table:visible thead tr:first-child th:nth-child(3) input[placeholder=\"零售价\"][class*=\"w-70\"]:visible",
-        "valueExpression": "${productRemark.costPrice} * 2",
+        "valueExpression": "(${productRemark.costPrice} + (${productRemark.weight} * 0.081 + 19)) * 1.2 / 6.3 / 0.92 / 0.95 * 2",
         "pageContext": "page3",
         "state": "visible",
         "timeoutMs": 15000,
@@ -1672,7 +1672,7 @@
           {
             "target": "SKU 表头零售价",
             "selector": "table.myj-table:visible thead tr:first-child th:nth-child(3) input[placeholder=\"零售价\"][class*=\"w-70\"]:visible",
-            "valueExpression": "${productRemark.costPrice} * 2"
+            "valueExpression": "(${productRemark.costPrice} + (${productRemark.weight} * 0.081 + 19)) * 1.2 / 6.3 / 0.92 / 0.95 * 2"
           },
           {
             "target": "SKU 表头货值",
